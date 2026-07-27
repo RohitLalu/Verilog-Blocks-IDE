@@ -11,8 +11,7 @@ This repository contains the project under `iter1/verilog-ide-1`, which includes
 - Yosys synthesis and Icarus Verilog simulation integration
 
 Video walkthrough:
-https://drive.google.com/drive/folders/1T1VfGJWniyjddWyE6Sshy3YmdkX9heoD?usp=sharing
-
+https://drive.google.com/file/d/1n24EPcB0PYitIx7529NZyWlTy7Nj7-mx/view?usp=sharing
 ## Project structure
 
 `iter1/verilog-ide-1/`
@@ -56,7 +55,7 @@ https://drive.google.com/drive/folders/1T1VfGJWniyjddWyE6Sshy3YmdkX9heoD?usp=sha
 All commands should be executed from:
 
 ```bash
-cd /Users/hello.welcometothisdevice/Verilog-Blocks-IDE/iter1/verilog-ide-1
+cd ~/Verilog-Blocks-IDE/iter1/verilog-ide-1
 ```
 
 ### 2. Install dependencies
