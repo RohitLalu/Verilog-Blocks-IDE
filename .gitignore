@@ -1,2 +1,3 @@
 iter1/verilog-ide-1/node_modules/
 dist/
+.DS_Store
