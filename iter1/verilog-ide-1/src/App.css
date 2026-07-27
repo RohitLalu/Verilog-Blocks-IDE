@@ -1,0 +1,42 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #090e18;
+}
+
+.app-root {
+  display: flex; flex-direction: column;
+  width: 100vw; height: 100vh; overflow: hidden;
+  background: #090e18;
+}
+
+.app-body {
+  display: flex; flex: 1; overflow: hidden; min-height: 0;
+}
+
+/* ReactFlow overrides */
+.react-flow__controls-button {
+  background: #161b27 !important;
+  border-color: #1e2733 !important;
+  fill: #475569 !important;
+}
+.react-flow__controls-button:hover {
+  background: #1e2733 !important; fill: #94a3b8 !important;
+}
+.react-flow__edge-path { stroke-linecap: round; }
+.react-flow__connection-line { stroke: #3b82f6; stroke-width: 1.5; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e2733; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2d3748; }
+
+/* Animations */
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.35} }
+@keyframes slideIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+
+.react-flow__node { animation: fadeIn 0.18s ease; }
+.react-flow__handle:hover { transform: translateY(-50%) scale(1.4) !important; }

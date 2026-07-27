@@ -1,0 +1,38 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs (Stage 1 builds these inside the container)
+dist/
+dist-app/
+dist-electron/
+
+# Local data (mounted as volumes in production)
+projects/
+docker-projects/
+docker-synthesis/
+docker-userblocks/
+synthesis/output/
+.vbide-prefs.json
+
+# Electron (not needed in Docker image)
+# electron-main.js and preload.js ARE copied (server.js uses same path logic)
+
+# Dev / git / OS
+.git/
+.gitignore
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+
+# Docs (optional — comment out to include)
+# TUTORIAL.md
+# README-docker.md
+
+# Large binary files from PDK (mounted as volumes instead)
+pdk/sky130/timing/
+pdk/gf180/
+pdk/ihp130/
+pdk/asap7/

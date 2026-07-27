@@ -1,0 +1,30 @@
+{
+  "name": "verilog-blocks-ide",
+  "version": "2.0.0",
+  "description": "Visual Verilog IDE with PDK-native cells, hierarchy, simulation",
+  "main": "electron-main.js",
+  "scripts": {
+    "dev":    "vite",
+    "build":  "vite build",
+    "server": "node server/server.js",
+    "docker": "npm run build && node server/server.js",
+    "electron": "electron .",
+    "start":  "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+  },
+  "dependencies": {
+    "react":     "^18.2.0",
+    "react-dom": "^18.2.0",
+    "reactflow": "^11.10.1",
+    "zustand":   "^4.4.7",
+    "express":   "^4.18.2",
+    "cors":      "^2.8.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently":         "^8.2.2",
+    "electron":             "^33.0.0",
+    "electron-builder":     "^26.0.0",
+    "vite":                 "^5.4.0",
+    "wait-on":              "^7.2.0"
+  }
+}

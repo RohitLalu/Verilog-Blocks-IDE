@@ -1,0 +1,69 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VerilogBlocks IDE — Docker Compose
+#
+# Usage:
+#   docker compose up -d
+#   open http://localhost:3000
+#
+# PDK paths are auto-detected from ~/.ciel (sky130) if present.
+# Projects are persisted to ./docker-projects on your host.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  verilogblocks:
+    image: verilogblocks:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: verilogblocks
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      # ── sky130 PDK path inside the container ──────────────────────────────
+      # Matches the volume mount below. Adjust the version hash if needed.
+      - SKY130_PDK_ROOT=/pdk/sky130/versions/0fe599b2afb6708d281543108caf8310912f54af
+
+      # ── Other PDKs (uncomment + add volume mounts when installed) ─────────
+      # - GF180_PDK_ROOT=/pdk/gf180mcuD
+      # - IHP130_PDK_ROOT=/pdk/ihp-sg13g2
+
+      - NODE_ENV=production
+      - PORT=3000
+
+    volumes:
+      # ── Persistent user data ───────────────────────────────────────────────
+      # Projects (saved designs) — persisted on host
+      - ./docker-projects:/app/projects
+
+      # Synthesis output — persisted on host
+      - ./docker-synthesis:/app/synthesis/output
+
+      # User-created custom blocks — persisted on host
+      - ./docker-userblocks:/app/pdk/user-blocks
+
+      # ── sky130 PDK (read-only) ─────────────────────────────────────────────
+      # Mount your local PDK install. Adjust path if yours differs.
+      # The container sees it at /pdk/sky130/versions/...
+      - ${HOME}/.ciel/ciel/sky130:/pdk/sky130:ro
+
+      # ── GF180 PDK (uncomment when installed) ──────────────────────────────
+      # - ${HOME}/.volare/gf180mcuD:/pdk/gf180mcuD:ro
+
+      # ── IHP130 PDK (uncomment when installed) ─────────────────────────────
+      # - ${HOME}/ihp-sg13g2-pdk:/pdk/ihp-sg13g2:ro
+
+    # Resource limits — increase if running large synthesisations
+    mem_limit: 2g
+    cpus: "2.0"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
