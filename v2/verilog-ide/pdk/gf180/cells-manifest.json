@@ -1,0 +1,1079 @@
+{
+  "pdkId": "gf180",
+  "library": "gf180mcu_fd_sc_mcu7t5v0",
+  "description": "GlobalFoundries GF180MCU 180nm \u2014 30 cells",
+  "powerPorts": [
+    "VDD",
+    "VSS"
+  ],
+  "powerNets": {
+    "VDD": "1'b1",
+    "VSS": "1'b0"
+  },
+  "supplyVoltage": 3.3,
+  "tempCorner": "tt_025C",
+  "cells": [
+    {
+      "id": "gf180_and2",
+      "abstract": "AND2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__and2_1",
+      "category": "combinational/gates",
+      "label": "AND2",
+      "symbol": "AND2",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1&A2",
+      "description": "2-input AND gate.",
+      "tutorial": "GF180 AND2: Z=A1&A2. 180nm \u2014 ~2\u00d7 sky130 delays. 3.3V supply.",
+      "timingHint": {
+        "tpd_typ": 0.3,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_and3",
+      "abstract": "AND3",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__and3_1",
+      "category": "combinational/gates",
+      "label": "AND3",
+      "symbol": "AND3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1&A2&A3",
+      "description": "3-input AND gate.",
+      "tutorial": "GF180 AND3: Z=A1&A2&A3.",
+      "timingHint": {
+        "tpd_typ": 0.42,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_and4",
+      "abstract": "AND4",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__and4_1",
+      "category": "combinational/gates",
+      "label": "AND4",
+      "symbol": "AND4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          },
+          {
+            "name": "A4",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1&A2&A3&A4",
+      "description": "4-input AND gate.",
+      "tutorial": "GF180 AND4: four-input AND.",
+      "timingHint": {
+        "tpd_typ": 0.55,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_or2",
+      "abstract": "OR2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__or2_1",
+      "category": "combinational/gates",
+      "label": "OR2",
+      "symbol": "OR2",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1|A2",
+      "description": "2-input OR gate.",
+      "tutorial": "GF180 OR2: NOR+INV implementation.",
+      "timingHint": {
+        "tpd_typ": 0.36,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_or3",
+      "abstract": "OR3",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__or3_1",
+      "category": "combinational/gates",
+      "label": "OR3",
+      "symbol": "OR3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1|A2|A3",
+      "description": "3-input OR gate.",
+      "tutorial": "GF180 OR3: larger PMOS stack.",
+      "timingHint": {
+        "tpd_typ": 0.5,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_xor2",
+      "abstract": "XOR2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__xor2_1",
+      "category": "combinational/gates",
+      "label": "XOR2",
+      "symbol": "XOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A1^A2",
+      "description": "2-input XOR gate.",
+      "tutorial": "GF180 XOR2: ~0.50ns at 180nm. Sum bit of adders.",
+      "timingHint": {
+        "tpd_typ": 0.5,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_xnor2",
+      "abstract": "XNOR2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__xnor2_1",
+      "category": "combinational/gates",
+      "label": "XNOR2",
+      "symbol": "XNOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=~(A1^A2)",
+      "description": "2-input XNOR.",
+      "tutorial": "GF180 XNOR2: Z=1 when inputs equal.",
+      "timingHint": {
+        "tpd_typ": 0.5,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_inv",
+      "abstract": "INV",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__inv_1",
+      "category": "combinational/gates",
+      "label": "INV",
+      "symbol": "INV",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~A",
+      "description": "Inverter \u2014 fastest cell in GF180.",
+      "tutorial": "GF180 INV: ~0.14ns. Output port is ZN (inverted).",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_nand2",
+      "abstract": "NAND2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__nand2_1",
+      "category": "combinational/gates",
+      "label": "NAND2",
+      "symbol": "NAND",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~(A1&A2)",
+      "description": "2-input NAND.",
+      "tutorial": "GF180 NAND2: faster than AND2. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.2,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_nand3",
+      "abstract": "NAND3",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__nand3_1",
+      "category": "combinational/gates",
+      "label": "NAND3",
+      "symbol": "NAND3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~(A1&A2&A3)",
+      "description": "3-input NAND.",
+      "tutorial": "GF180 NAND3: 3 series NMOS. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_nor2",
+      "abstract": "NOR2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__nor2_1",
+      "category": "combinational/gates",
+      "label": "NOR2",
+      "symbol": "NOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~(A1|A2)",
+      "description": "2-input NOR.",
+      "tutorial": "GF180 NOR2: PMOS pull-up stack. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.24,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_nor3",
+      "abstract": "NOR3",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__nor3_1",
+      "category": "combinational/gates",
+      "label": "NOR3",
+      "symbol": "NOR3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~(A1|A2|A3)",
+      "description": "3-input NOR.",
+      "tutorial": "GF180 NOR3: 3 PMOS in series. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.33,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_aoi21",
+      "abstract": "AOI21",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__aoi21_1",
+      "category": "combinational/complex",
+      "label": "AOI21",
+      "symbol": "AOI21",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~(A1&A2|B)",
+      "description": "AND-OR-Invert 2-1.",
+      "tutorial": "GF180 AOI21: efficient single-stage 3-literal function. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.26,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_oai21",
+      "abstract": "OAI21",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__oai21_1",
+      "category": "combinational/complex",
+      "label": "OAI21",
+      "symbol": "OAI21",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "ZN",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "ZN=~((A1|A2)&B)",
+      "description": "OR-AND-Invert 2-1.",
+      "tutorial": "GF180 OAI21: dual of AOI21. Output ZN.",
+      "timingHint": {
+        "tpd_typ": 0.26,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_mux2",
+      "abstract": "MUX2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__mux2_1",
+      "category": "combinational/gates",
+      "label": "MUX2",
+      "symbol": "MUX",
+      "color": "#60a5fa",
+      "ports": {
+        "inputs": [
+          {
+            "name": "I0",
+            "width": 1
+          },
+          {
+            "name": "I1",
+            "width": 1
+          },
+          {
+            "name": "S",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=S?I1:I0",
+      "description": "2-to-1 MUX.",
+      "tutorial": "GF180 MUX2: Z=S?I1:I0. Note I0/I1 port names (vs sky130 A0/A1).",
+      "timingHint": {
+        "tpd_typ": 0.4,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_ha",
+      "abstract": "HA",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__ha_1",
+      "category": "combinational/adders",
+      "label": "Half Adder",
+      "symbol": "HA",
+      "color": "#f59e0b",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "S",
+            "width": 1
+          },
+          {
+            "name": "CO",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "S=A^B; CO=A&B",
+      "description": "1-bit half adder (native GF180 cell).",
+      "tutorial": "GF180 native HA: S=A^B, CO=A&B. Ports S and CO (vs sky130 SUM/COUT).",
+      "timingHint": {
+        "tpd_typ": 0.48,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_fa",
+      "abstract": "FA",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__fa_1",
+      "category": "combinational/adders",
+      "label": "Full Adder",
+      "symbol": "FA",
+      "color": "#f59e0b",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "CI",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "S",
+            "width": 1
+          },
+          {
+            "name": "CO",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "S=A^B^CI; CO=maj(A,B,CI)",
+      "description": "1-bit full adder (native GF180 cell).",
+      "tutorial": "GF180 native FA. Note CI/CO port names (vs sky130 CIN/COUT). Chain for ripple-carry adder.",
+      "timingHint": {
+        "tpd_typ": 0.65,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_dff",
+      "abstract": "DFF",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__dff_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF",
+      "symbol": "DFF",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=D",
+      "description": "Positive-edge DFF, no reset.",
+      "tutorial": "GF180 basic DFF. Q captures D on rising CLK. tsu=0.35ns, tco=0.55ns.",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.55,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_dffr",
+      "abstract": "DFFR",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__dffr_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (reset)",
+      "symbol": "DFFR",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "RN",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=RN?D:0",
+      "description": "DFF with active-low async reset.",
+      "tutorial": "GF180 DFF: RN=0 forces Q=0 asynchronously. Most common FF in GF180 designs.",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.58,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_dffs",
+      "abstract": "DFFS",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__dffs_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (set)",
+      "symbol": "DFFS",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SN",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=SN?D:1",
+      "description": "DFF with active-low async set.",
+      "tutorial": "GF180 DFF: SN=0 forces Q=1 asynchronously.",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.58,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_dffsr",
+      "abstract": "DFFSR",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__dffsr_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (set+reset)",
+      "symbol": "DFFSR",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SN",
+            "width": 1
+          },
+          {
+            "name": "RN",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=RN?0:(SN?1:D)",
+      "description": "DFF with async set and reset.",
+      "tutorial": "GF180 DFF with both async set (SN) and reset (RN). Both active-low. RN has priority over SN.",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.6,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_dffn",
+      "abstract": "DFFN",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__dffn_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (neg-edge)",
+      "symbol": "DFFN",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "negedge CLK: Q<=D",
+      "description": "Negative-edge triggered DFF.",
+      "tutorial": "GF180 neg-edge DFF. Q captures D on falling CLK. Used in double-data-rate circuits.",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.55,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_sdff",
+      "abstract": "SDFF",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__sdff_1",
+      "category": "sequential/flip_flops",
+      "label": "Scan DFF",
+      "symbol": "SDFF",
+      "color": "#f472b6",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SE",
+            "width": 1
+          },
+          {
+            "name": "SI",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=SE?SI:D",
+      "description": "Scan DFF for DFT.",
+      "tutorial": "GF180 scan DFF: SE=1 \u2192 scan mode (Q captures SI). Port names SI/SE (vs sky130 SCD/SCE).",
+      "timingHint": {
+        "tsu": 0.35,
+        "thd": 0.08,
+        "tco": 0.58,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_buf",
+      "abstract": "BUF",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__buf_1",
+      "category": "combinational/utility",
+      "label": "BUF",
+      "symbol": "BUF",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A",
+      "description": "Buffer drive strength 1.",
+      "tutorial": "GF180 BUF: non-inverting driver. Output port Z.",
+      "timingHint": {
+        "tpd_typ": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_buf2",
+      "abstract": "BUF2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__buf_2",
+      "category": "combinational/utility",
+      "label": "BUF (str2)",
+      "symbol": "BUF2",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A",
+      "description": "Buffer drive strength 2.",
+      "tutorial": "GF180 BUF 2\u00d7: doubled drive for moderate fanout.",
+      "timingHint": {
+        "tpd_typ": 0.27,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_buf4",
+      "abstract": "BUF4",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__buf_4",
+      "category": "combinational/utility",
+      "label": "BUF (str4)",
+      "symbol": "BUF4",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A",
+      "description": "Buffer drive strength 4.",
+      "tutorial": "GF180 BUF 4\u00d7: high-drive for heavy loads.",
+      "timingHint": {
+        "tpd_typ": 0.26,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_clkbuf",
+      "abstract": "CLKBUF",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__clkbuf_1",
+      "category": "combinational/utility",
+      "label": "CLKBUF",
+      "symbol": "CKBUF",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A",
+      "description": "Clock-optimised buffer.",
+      "tutorial": "GF180 CLKBUF: symmetric rise/fall. Use exclusively on clock nets.",
+      "timingHint": {
+        "tpd_typ": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_clkbuf2",
+      "abstract": "CLKBUF2",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__clkbuf_2",
+      "category": "combinational/utility",
+      "label": "CLKBUF (str2)",
+      "symbol": "CKB2",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=A",
+      "description": "Clock buffer drive strength 2.",
+      "tutorial": "GF180 CLKBUF 2\u00d7: second level of clock distribution.",
+      "timingHint": {
+        "tpd_typ": 0.27,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_tieh",
+      "abstract": "TIEH",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__tieh_1",
+      "category": "combinational/utility",
+      "label": "Tie-High",
+      "symbol": "TIEH",
+      "color": "#64748b",
+      "ports": {
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=1",
+      "description": "Tie-high \u2014 constant logic 1.",
+      "tutorial": "GF180 TIEH: Z always 1. Use instead of VDD direct connection.",
+      "timingHint": {
+        "tpd_typ": 0.0,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "gf180_tiel",
+      "abstract": "TIEL",
+      "cell": "gf180mcu_fd_sc_mcu7t5v0__tiel_1",
+      "category": "combinational/utility",
+      "label": "Tie-Low",
+      "symbol": "TIEL",
+      "color": "#64748b",
+      "ports": {
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=0",
+      "description": "Tie-low \u2014 constant logic 0.",
+      "tutorial": "GF180 TIEL: Z always 0. Use instead of VSS direct connection.",
+      "timingHint": {
+        "tpd_typ": 0.0,
+        "unit": "ns"
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  verilogblocks:
+    image: verilogblocks:latest
+    build: { context: ., dockerfile: Dockerfile }
+    container_name: verilogblocks
+    restart: unless-stopped
+    ports: ["3000:3000"]
+    environment:
+      - SKY130_PDK_ROOT=/pdk/sky130/versions/0fe599b2afb6708d281543108caf8310912f54af
+      - GF180_PDK_ROOT=/pdk/gf180mcuD
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ./docker-projects:/app/projects
+      - ./docker-synthesis:/app/synthesis/output
+      - ./docker-userblocks:/app/pdk/user-blocks
+      - ${HOME}/.ciel/ciel/sky130:/pdk/sky130:ro
+      # - ${HOME}/.volare/gf180mcuD:/pdk/gf180mcuD:ro
+    mem_limit: 2g
+    cpus: "2.0"
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

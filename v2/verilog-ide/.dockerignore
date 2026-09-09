@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-app/
+docker-projects/
+docker-synthesis/
+docker-userblocks/
+projects/
+.git/
+*.log
+.DS_Store
+.env
+synthesis/output/
