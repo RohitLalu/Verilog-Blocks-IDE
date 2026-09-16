@@ -1,0 +1,1680 @@
+{
+  "pdkId": "sky130",
+  "library": "sky130_fd_sc_hd",
+  "description": "SkyWater 130nm High-Density standard cell library \u2014 50 cells",
+  "powerPorts": [
+    "VPWR",
+    "VGND",
+    "VPB",
+    "VNB"
+  ],
+  "powerNets": {
+    "VPWR": "1'b1",
+    "VGND": "1'b0",
+    "VPB": "1'b1",
+    "VNB": "1'b0"
+  },
+  "supplyVoltage": 1.8,
+  "tempCorner": "tt_025C",
+  "cells": [
+    {
+      "id": "sky130_and2",
+      "abstract": "AND2",
+      "cell": "sky130_fd_sc_hd__and2_1",
+      "category": "combinational/gates",
+      "label": "AND2",
+      "symbol": "AND2",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A&B",
+      "description": "2-input AND gate.",
+      "tutorial": "X=A&B. Drive str 1 \u2248240\u00b5A. Use _2/_4 for heavy loads.",
+      "timingHint": {
+        "tpd_typ": 0.15,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_and3",
+      "abstract": "AND3",
+      "cell": "sky130_fd_sc_hd__and3_1",
+      "category": "combinational/gates",
+      "label": "AND3",
+      "symbol": "AND3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A&B&C",
+      "description": "3-input AND gate.",
+      "tutorial": "X=A&B&C. Two stacked NAND2+INV stages internally.",
+      "timingHint": {
+        "tpd_typ": 0.22,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_and4",
+      "abstract": "AND4",
+      "cell": "sky130_fd_sc_hd__and4_1",
+      "category": "combinational/gates",
+      "label": "AND4",
+      "symbol": "AND4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A&B&C&D",
+      "description": "4-input AND gate.",
+      "tutorial": "X=A&B&C&D. Useful for wide enable/decode logic.",
+      "timingHint": {
+        "tpd_typ": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_or2",
+      "abstract": "OR2",
+      "cell": "sky130_fd_sc_hd__or2_1",
+      "category": "combinational/gates",
+      "label": "OR2",
+      "symbol": "OR2",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A|B",
+      "description": "2-input OR gate.",
+      "tutorial": "X=A|B. NOR+INV implementation \u2014 one extra stage vs AND.",
+      "timingHint": {
+        "tpd_typ": 0.18,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_or3",
+      "abstract": "OR3",
+      "cell": "sky130_fd_sc_hd__or3_1",
+      "category": "combinational/gates",
+      "label": "OR3",
+      "symbol": "OR3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A|B|C",
+      "description": "3-input OR gate.",
+      "tutorial": "3-input OR. Larger PMOS stack \u2192 slower pull-up.",
+      "timingHint": {
+        "tpd_typ": 0.26,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_or4",
+      "abstract": "OR4",
+      "cell": "sky130_fd_sc_hd__or4_1",
+      "category": "combinational/gates",
+      "label": "OR4",
+      "symbol": "OR4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A|B|C|D",
+      "description": "4-input OR gate.",
+      "tutorial": "X=A|B|C|D. Wide flag-combining logic.",
+      "timingHint": {
+        "tpd_typ": 0.33,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_xor2",
+      "abstract": "XOR2",
+      "cell": "sky130_fd_sc_hd__xor2_1",
+      "category": "combinational/gates",
+      "label": "XOR2",
+      "symbol": "XOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A^B",
+      "description": "2-input XOR. Sum bit of adders.",
+      "tutorial": "XOR most transistor-expensive 2-input gate. ~0.25ns. Core of half adder SUM bit.",
+      "timingHint": {
+        "tpd_typ": 0.25,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_xnor2",
+      "abstract": "XNOR2",
+      "cell": "sky130_fd_sc_hd__xnor2_1",
+      "category": "combinational/gates",
+      "label": "XNOR2",
+      "symbol": "XNOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=~(A^B)",
+      "description": "2-input XNOR \u2014 equivalence gate.",
+      "tutorial": "X=1 when inputs equal. Used in comparators and parity checkers.",
+      "timingHint": {
+        "tpd_typ": 0.25,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_inv",
+      "abstract": "INV",
+      "cell": "sky130_fd_sc_hd__inv_1",
+      "category": "combinational/gates",
+      "label": "INV",
+      "symbol": "INV",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~A",
+      "description": "Inverter \u2014 fastest cell in sky130 HD.",
+      "tutorial": "1 PMOS + 1 NMOS. ~0.07ns \u2014 fastest cell. Use INV pairs to buffer long nets.",
+      "timingHint": {
+        "tpd_typ": 0.07,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_inv2",
+      "abstract": "INV2",
+      "cell": "sky130_fd_sc_hd__inv_2",
+      "category": "combinational/gates",
+      "label": "INV (str2)",
+      "symbol": "INV2",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~A",
+      "description": "Inverter drive strength 2.",
+      "tutorial": "2\u00d7 drive = ~480\u00b5A. Use when single INV cannot drive fanout.",
+      "timingHint": {
+        "tpd_typ": 0.07,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_inv4",
+      "abstract": "INV4",
+      "cell": "sky130_fd_sc_hd__inv_4",
+      "category": "combinational/gates",
+      "label": "INV (str4)",
+      "symbol": "INV4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~A",
+      "description": "Inverter drive strength 4.",
+      "tutorial": "4\u00d7 = ~960\u00b5A. Used in clock tree and high-drive output inverters.",
+      "timingHint": {
+        "tpd_typ": 0.07,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nand2",
+      "abstract": "NAND2",
+      "cell": "sky130_fd_sc_hd__nand2_1",
+      "category": "combinational/gates",
+      "label": "NAND2",
+      "symbol": "NAND",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A&B)",
+      "description": "2-input NAND. Universal gate \u2014 faster than AND2.",
+      "tutorial": "Faster than AND2 \u2014 no INV stage needed. Synthesisers prefer NAND2. Functionally complete.",
+      "timingHint": {
+        "tpd_typ": 0.1,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nand3",
+      "abstract": "NAND3",
+      "cell": "sky130_fd_sc_hd__nand3_1",
+      "category": "combinational/gates",
+      "label": "NAND3",
+      "symbol": "NAND3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A&B&C)",
+      "description": "3-input NAND gate.",
+      "tutorial": "NAND3: higher series NMOS stack \u2192 weaker pull-down vs NAND2.",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nand4",
+      "abstract": "NAND4",
+      "cell": "sky130_fd_sc_hd__nand4_1",
+      "category": "combinational/gates",
+      "label": "NAND4",
+      "symbol": "NAND4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A&B&C&D)",
+      "description": "4-input NAND gate.",
+      "tutorial": "NAND4: 4 series NMOS. Useful for wide decode enables.",
+      "timingHint": {
+        "tpd_typ": 0.18,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nor2",
+      "abstract": "NOR2",
+      "cell": "sky130_fd_sc_hd__nor2_1",
+      "category": "combinational/gates",
+      "label": "NOR2",
+      "symbol": "NOR",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A|B)",
+      "description": "2-input NOR gate.",
+      "tutorial": "NOR2: PMOS pull-up stack \u2014 weaker than NAND2. Also functionally complete.",
+      "timingHint": {
+        "tpd_typ": 0.12,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nor3",
+      "abstract": "NOR3",
+      "cell": "sky130_fd_sc_hd__nor3_1",
+      "category": "combinational/gates",
+      "label": "NOR3",
+      "symbol": "NOR3",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A|B|C)",
+      "description": "3-input NOR gate.",
+      "tutorial": "NOR3: 3 PMOS in series. Used in priority encoders.",
+      "timingHint": {
+        "tpd_typ": 0.17,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_nor4",
+      "abstract": "NOR4",
+      "cell": "sky130_fd_sc_hd__nor4_1",
+      "category": "combinational/gates",
+      "label": "NOR4",
+      "symbol": "NOR4",
+      "color": "#4ade80",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A|B|C|D)",
+      "description": "4-input NOR gate.",
+      "tutorial": "NOR4: 4 PMOS series pull-up. Wide NOR for reset trees.",
+      "timingHint": {
+        "tpd_typ": 0.22,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_mux2",
+      "abstract": "MUX2",
+      "cell": "sky130_fd_sc_hd__mux2_1",
+      "category": "combinational/gates",
+      "label": "MUX2",
+      "symbol": "MUX",
+      "color": "#60a5fa",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A0",
+            "width": 1
+          },
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "S",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=S?A1:A0",
+      "description": "2-to-1 MUX.",
+      "tutorial": "MUX2 with transmission gates. X=S?A1:A0. ALU and datapath selection.",
+      "timingHint": {
+        "tpd_typ": 0.2,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_mux4",
+      "abstract": "MUX4",
+      "cell": "sky130_fd_sc_hd__mux4_1",
+      "category": "combinational/gates",
+      "label": "MUX4",
+      "symbol": "MUX4",
+      "color": "#60a5fa",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A0",
+            "width": 1
+          },
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "A3",
+            "width": 1
+          },
+          {
+            "name": "S0",
+            "width": 1
+          },
+          {
+            "name": "S1",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X={S1,S0}==0?A0:...:A3",
+      "description": "4-to-1 MUX.",
+      "tutorial": "MUX4: two MUX2 stages. S1:S0 selects one of four inputs.",
+      "timingHint": {
+        "tpd_typ": 0.32,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_mux2i",
+      "abstract": "MUX2I",
+      "cell": "sky130_fd_sc_hd__mux2i_1",
+      "category": "combinational/gates",
+      "label": "MUX2 (inv)",
+      "symbol": "MUXI",
+      "color": "#60a5fa",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A0",
+            "width": 1
+          },
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "S",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(S?A1:A0)",
+      "description": "2-to-1 MUX with inverted output.",
+      "tutorial": "MUXI: saves an inverter when downstream gate expects active-low.",
+      "timingHint": {
+        "tpd_typ": 0.18,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_aoi21",
+      "abstract": "AOI21",
+      "cell": "sky130_fd_sc_hd__a2o1ai1_1",
+      "category": "combinational/complex",
+      "label": "AOI21",
+      "symbol": "AOI21",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A1&A2|B1)",
+      "description": "AND-OR-Invert 2-1.",
+      "tutorial": "AOI21: most area/timing-efficient single-stage 3-literal cell. Synthesiser prefers this over AND+OR+INV.",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_aoi22",
+      "abstract": "AOI22",
+      "cell": "sky130_fd_sc_hd__a2o2ai2_1",
+      "category": "combinational/complex",
+      "label": "AOI22",
+      "symbol": "AOI22",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          },
+          {
+            "name": "B2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A1&A2|B1&B2)",
+      "description": "AND-OR-Invert 2-2.",
+      "tutorial": "AOI22: two AND-pairs OR'd then inverted. Common in carry generate/propagate logic.",
+      "timingHint": {
+        "tpd_typ": 0.18,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_aoi211",
+      "abstract": "AOI211",
+      "cell": "sky130_fd_sc_hd__a2o11ai1_1",
+      "category": "combinational/complex",
+      "label": "AOI211",
+      "symbol": "AOI211",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          },
+          {
+            "name": "C1",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~(A1&A2|B1|C1)",
+      "description": "AOI 2-1-1.",
+      "tutorial": "AOI211: Y=~(A1&A2|B1|C1). Used in priority encoders.",
+      "timingHint": {
+        "tpd_typ": 0.16,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_oai21",
+      "abstract": "OAI21",
+      "cell": "sky130_fd_sc_hd__o2a1ai1_1",
+      "category": "combinational/complex",
+      "label": "OAI21",
+      "symbol": "OAI21",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~((A1|A2)&B1)",
+      "description": "OR-AND-Invert 2-1.",
+      "tutorial": "OAI21: dual of AOI21. Used in carry propagate networks.",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_oai22",
+      "abstract": "OAI22",
+      "cell": "sky130_fd_sc_hd__o2a2ai2_1",
+      "category": "combinational/complex",
+      "label": "OAI22",
+      "symbol": "OAI22",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          },
+          {
+            "name": "B2",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~((A1|A2)&(B1|B2))",
+      "description": "OR-AND-Invert 2-2.",
+      "tutorial": "OAI22: NAND of two OR-pairs. Used in fast carry chains.",
+      "timingHint": {
+        "tpd_typ": 0.18,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_oai211",
+      "abstract": "OAI211",
+      "cell": "sky130_fd_sc_hd__o2a11ai1_1",
+      "category": "combinational/complex",
+      "label": "OAI211",
+      "symbol": "OAI211",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A1",
+            "width": 1
+          },
+          {
+            "name": "A2",
+            "width": 1
+          },
+          {
+            "name": "B1",
+            "width": 1
+          },
+          {
+            "name": "C1",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~((A1|A2)&B1&C1)",
+      "description": "OAI 2-1-1.",
+      "tutorial": "OAI211: wide AND term with OR input.",
+      "timingHint": {
+        "tpd_typ": 0.16,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_maj3",
+      "abstract": "MAJ3",
+      "cell": "sky130_fd_sc_hd__maj3_1",
+      "category": "combinational/complex",
+      "label": "MAJ3",
+      "symbol": "MAJ",
+      "color": "#34d399",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "C",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=(A&B)|(B&C)|(A&C)",
+      "description": "3-input majority function.",
+      "tutorial": "MAJ3: output=1 if \u22652 inputs are 1. This IS the full adder carry-out: COUT=MAJ(A,B,CIN).",
+      "timingHint": {
+        "tpd_typ": 0.19,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_ha",
+      "abstract": "HA",
+      "cell": "sky130_fd_sc_hd__ha_1",
+      "category": "combinational/adders",
+      "label": "Half Adder",
+      "symbol": "HA",
+      "color": "#f59e0b",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "SUM",
+            "width": 1
+          },
+          {
+            "name": "COUT",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "SUM=A^B; COUT=A&B",
+      "description": "1-bit half adder (native cell).",
+      "tutorial": "Native optimised half adder. SUM=A\u2295B, COUT=A&B. Use at LSB of RCA chain.",
+      "timingHint": {
+        "tpd_typ": 0.25,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_fa",
+      "abstract": "FA",
+      "cell": "sky130_fd_sc_hd__fa_1",
+      "category": "combinational/adders",
+      "label": "Full Adder",
+      "symbol": "FA",
+      "color": "#f59e0b",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "B",
+            "width": 1
+          },
+          {
+            "name": "CIN",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "SUM",
+            "width": 1
+          },
+          {
+            "name": "COUT",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "SUM=A^B^CIN; COUT=maj(A,B,CIN)",
+      "description": "1-bit full adder (native sky130 cell).",
+      "tutorial": "Dedicated native FA \u2014 faster+smaller than gate-synthesised. Chain for ripple-carry adder.",
+      "timingHint": {
+        "tpd_typ": 0.35,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_dfxtp",
+      "abstract": "DFF",
+      "cell": "sky130_fd_sc_hd__dfxtp_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF",
+      "symbol": "DFF",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=D",
+      "description": "Positive-edge DFF, no reset. Smallest FF.",
+      "tutorial": "Smallest DFF \u2014 no reset pin. Use when reset managed at block level.",
+      "timingHint": {
+        "tsu": 0.16,
+        "thd": 0.04,
+        "tco": 0.26,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_dfrtp",
+      "abstract": "DFF_R",
+      "cell": "sky130_fd_sc_hd__dfrtp_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (reset)",
+      "symbol": "DFFR",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "RESET_B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=RESET_B?D:0",
+      "description": "DFF with active-low async reset.",
+      "tutorial": "RESET_B=0 forces Q=0 immediately (async). Most common FF in sky130 designs.",
+      "timingHint": {
+        "tsu": 0.18,
+        "thd": 0.04,
+        "tco": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_dfstp",
+      "abstract": "DFF_S",
+      "cell": "sky130_fd_sc_hd__dfstp_1",
+      "category": "sequential/flip_flops",
+      "label": "DFF (set)",
+      "symbol": "DFFS",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SET_B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=SET_B?D:1",
+      "description": "DFF with active-low async set.",
+      "tutorial": "SET_B=0 forces Q=1 asynchronously. Used for active-low enable registers.",
+      "timingHint": {
+        "tsu": 0.18,
+        "thd": 0.04,
+        "tco": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_edfxtp",
+      "abstract": "EDFF",
+      "cell": "sky130_fd_sc_hd__edfxtp_1",
+      "category": "sequential/flip_flops",
+      "label": "Enable DFF",
+      "symbol": "EDFF",
+      "color": "#c084fc",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "DE",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: if(DE) Q<=D",
+      "description": "DFF with clock enable.",
+      "tutorial": "Q captures D only when DE=1. More area-efficient than MUX+DFF for write-enable registers.",
+      "timingHint": {
+        "tsu": 0.18,
+        "thd": 0.04,
+        "tco": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_sdfxtp",
+      "abstract": "SDFF",
+      "cell": "sky130_fd_sc_hd__sdfxtp_1",
+      "category": "sequential/flip_flops",
+      "label": "Scan DFF",
+      "symbol": "SDFF",
+      "color": "#f472b6",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SCD",
+            "width": 1
+          },
+          {
+            "name": "SCE",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=SCE?SCD:D",
+      "description": "Scan-enabled DFF for DFT.",
+      "tutorial": "SCE=1 \u2192 scan mode (captures SCD from previous FF). Forms scan chain for ATPG testing.",
+      "timingHint": {
+        "tsu": 0.18,
+        "thd": 0.04,
+        "tco": 0.28,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_sdfrtp",
+      "abstract": "SDFF_R",
+      "cell": "sky130_fd_sc_hd__sdfrtp_1",
+      "category": "sequential/flip_flops",
+      "label": "Scan DFF (reset)",
+      "symbol": "SDFFR",
+      "color": "#f472b6",
+      "ports": {
+        "inputs": [
+          {
+            "name": "CLK",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          },
+          {
+            "name": "SCD",
+            "width": 1
+          },
+          {
+            "name": "SCE",
+            "width": 1
+          },
+          {
+            "name": "RESET_B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "posedge CLK: Q<=RESET_B?(SCE?SCD:D):0",
+      "description": "Scan DFF with async reset.",
+      "tutorial": "Most common scan cell for designs with global reset. RESET_B=0 forces Q=0 asynchronously.",
+      "timingHint": {
+        "tsu": 0.18,
+        "thd": 0.04,
+        "tco": 0.3,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_dlxtp",
+      "abstract": "DLAT",
+      "cell": "sky130_fd_sc_hd__dlxtp_1",
+      "category": "sequential/latches",
+      "label": "D-Latch",
+      "symbol": "LAT",
+      "color": "#818cf8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "GATE",
+            "width": 1
+          },
+          {
+            "name": "D",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Q",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "GATE=1: Q<=D",
+      "description": "D-latch, active-high gate. Transparent when GATE=1.",
+      "tutorial": "Level-sensitive latch. Q follows D while GATE=1; holds when GATE=0. Use carefully \u2014 latches complicate STA and DFT.",
+      "timingHint": {
+        "tsu": 0.14,
+        "thd": 0.04,
+        "tco": 0.22,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_buf",
+      "abstract": "BUF",
+      "cell": "sky130_fd_sc_hd__buf_1",
+      "category": "combinational/utility",
+      "label": "BUF",
+      "symbol": "BUF",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Buffer (drive strength 1).",
+      "tutorial": "BUF=INV+INV. Non-inverting driver. Use for high-fanout nets.",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_buf4",
+      "abstract": "BUF4",
+      "cell": "sky130_fd_sc_hd__buf_4",
+      "category": "combinational/utility",
+      "label": "BUF (str4)",
+      "symbol": "BUF4",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Buffer drive strength 4.",
+      "tutorial": "4\u00d7 drive = ~960\u00b5A. Use for medium-fanout buses and long wires.",
+      "timingHint": {
+        "tpd_typ": 0.13,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_buf8",
+      "abstract": "BUF8",
+      "cell": "sky130_fd_sc_hd__buf_8",
+      "category": "combinational/utility",
+      "label": "BUF (str8)",
+      "symbol": "BUF8",
+      "color": "#94a3b8",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Buffer drive strength 8.",
+      "tutorial": "8\u00d7 = ~1.9mA. Use for large bus drivers and output stages.",
+      "timingHint": {
+        "tpd_typ": 0.13,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_clkbuf",
+      "abstract": "CLKBUF",
+      "cell": "sky130_fd_sc_hd__clkbuf_1",
+      "category": "combinational/utility",
+      "label": "CLKBUF",
+      "symbol": "CKBUF",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Clock buffer \u2014 symmetric rise/fall, low skew.",
+      "tutorial": "Specially characterised for clock nets. Matched rise/fall delay. Never use regular BUF on clock nets.",
+      "timingHint": {
+        "tpd_typ": 0.14,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_clkbuf4",
+      "abstract": "CLKBUF4",
+      "cell": "sky130_fd_sc_hd__clkbuf_4",
+      "category": "combinational/utility",
+      "label": "CLKBUF (str4)",
+      "symbol": "CKB4",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Clock buffer drive strength 4.",
+      "tutorial": "4\u00d7 clock buffer. Used in second/third levels of clock distribution tree.",
+      "timingHint": {
+        "tpd_typ": 0.13,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_clkbuf8",
+      "abstract": "CLKBUF8",
+      "cell": "sky130_fd_sc_hd__clkbuf_8",
+      "category": "combinational/utility",
+      "label": "CLKBUF (str8)",
+      "symbol": "CKB8",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "X",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "X=A",
+      "description": "Clock buffer drive strength 8.",
+      "tutorial": "8\u00d7 clock buffer. Used at root/spine of clock tree where fanout is high.",
+      "timingHint": {
+        "tpd_typ": 0.13,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_clkinv",
+      "abstract": "CLKINV",
+      "cell": "sky130_fd_sc_hd__clkinv_1",
+      "category": "combinational/utility",
+      "label": "CLKINV",
+      "symbol": "CKINV",
+      "color": "#facc15",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Y",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Y=~A",
+      "description": "Clock inverter \u2014 differential clock trees.",
+      "tutorial": "Inverter optimised for clock networks. Symmetric delay like CLKBUF. Creates complementary clock phase.",
+      "timingHint": {
+        "tpd_typ": 0.07,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_ebufn",
+      "abstract": "TBUF",
+      "cell": "sky130_fd_sc_hd__ebufn_1",
+      "category": "combinational/utility",
+      "label": "Tri-state BUF",
+      "symbol": "TBUF",
+      "color": "#64748b",
+      "ports": {
+        "inputs": [
+          {
+            "name": "A",
+            "width": 1
+          },
+          {
+            "name": "TE_B",
+            "width": 1
+          }
+        ],
+        "outputs": [
+          {
+            "name": "Z",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "Z=TE_B?Hi-Z:A",
+      "description": "Tristate buffer \u2014 output is Hi-Z when TE_B=1.",
+      "tutorial": "Active-low enable tristate. TE_B=0 \u2192 Z follows A. TE_B=1 \u2192 high-impedance. For bus architectures.",
+      "timingHint": {
+        "tpd_typ": 0.2,
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "sky130_conb",
+      "abstract": "TIE",
+      "cell": "sky130_fd_sc_hd__conb_1",
+      "category": "combinational/utility",
+      "label": "Tie Cell",
+      "symbol": "TIE",
+      "color": "#64748b",
+      "ports": {
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "HI",
+            "width": 1
+          },
+          {
+            "name": "LO",
+            "width": 1
+          }
+        ]
+      },
+      "logic": "HI=1;LO=0",
+      "description": "Tie-high and tie-low outputs.",
+      "tutorial": "Never connect inputs to VPWR/VGND directly. Use CONB for reliability. OpenLane inserts automatically.",
+      "timingHint": {
+        "tpd_typ": 0.0,
+        "unit": "ns"
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "verilog-blocks-ide",
+  "version": "2.0.0",
+  "main": "electron-main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "server": "node server/server.js",
+    "docker": "npm run build && node server/server.js",
+    "electron": "electron .",
+    "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "reactflow": "11.11.4",
+    "zustand": "4.5.5",
+    "express": "4.21.1",
+    "cors": "2.8.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.4",
+    "vite": "5.4.11",
+    "concurrently": "8.2.2",
+    "wait-on": "7.2.0",
+    "electron": "33.2.0"
+  }
+}
