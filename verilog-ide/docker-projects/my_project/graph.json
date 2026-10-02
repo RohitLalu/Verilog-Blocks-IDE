@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    {
+      "id": "node_1789552091202_80x",
+      "type": "blockNode",
+      "position": {
+        "x": -169.5597212658456,
+        "y": -39.63171938322472
+      },
+      "data": {
+        "id": "my_project",
+        "label": "test",
+        "symbol": "TEST",
+        "module": "my_project",
+        "category": "hierarchy/user",
+        "color": "#818cf8",
+        "description": "aoi custom",
+        "tutorial": "Instantiates the top module from project \"my_project\".",
+        "isHierarchical": true,
+        "ports": {
+          "inputs": [
+            {
+              "name": "sky130_and3_1_A",
+              "width": 1
+            },
+            {
+              "name": "sky130_and3_1_B",
+              "width": 1
+            },
+            {
+              "name": "sky130_and3_1_C",
+              "width": 1
+            },
+            {
+              "name": "sky130_inv2_1_A",
+              "width": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "sky130_or2_1_X",
+              "width": 1
+            }
+          ]
+        },
+        "sourceProject": "my_project",
+        "verilogCode": "// ────────────────────────────────────────────────────────────\n// VerilogBlocks IDE — my_project   2026-09-16 09:47:42\n// PDK: SkyWater 130nm High-Density standard cell library — 50 cells (sky130)\n// Blocks:3  Wires:2\n// ────────────────────────────────────────────────────────────\n\n// No submodule includes\n\n`timescale 1ns / 1ps\n\nmodule top (\n    input  wire sky130_and3_1_A,\n    input  wire sky130_and3_1_B,\n    input  wire sky130_and3_1_C,\n    input  wire sky130_inv2_1_A,\n    output wiresky130_or2_1_X\n);\n\n    // Internal signals\n    wire sky130_and3_1_sky130_or2_1_X_0;\n    wire sky130_inv2_1_sky130_or2_1_Y_0;\n\n    // ── Logic ────────────────────────────────────────────────────────\n    // AND3 [sky130_and3_1]\n    assign sky130_and3_1_sky130_or2_1_X_0=sky130_and3_1_A&sky130_and3_1_B&sky130_and3_1_C;\n\n    // OR2 [sky130_or2_1]\n    assign sky130_or2_1_X=sky130_and3_1_sky130_or2_1_X_0|sky130_inv2_1_sky130_or2_1_Y_0;\n\n    // INV (str2) [sky130_inv2_1]\n    assign sky130_inv2_1_sky130_or2_1_Y_0=~sky130_inv2_1_A;\n\nendmodule",
+        "instanceName": "my_project_1",
+        "paramValues": {}
+      },
+      "width": 155,
+      "height": 179,
+      "selected": false,
+      "positionAbsolute": {
+        "x": -169.5597212658456,
+        "y": -39.63171938322472
+      },
+      "dragging": false
+    }
+  ],
+  "edges": []
+}

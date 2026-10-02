@@ -1,0 +1,8 @@
+read_verilog -sv "/app/projects/my_project/top.v"
+read_verilog -sv "/pdk/sky130/versions/0fe599b2afb6708d281543108caf8310912f54af"
+hierarchy -top top
+proc; opt; fsm; opt; memory; opt
+synth_sky130 -top top
+write_verilog "/app/synthesis/output/top_synth.v"
+write_json "/app/synthesis/output/top_synth.json"
+stat

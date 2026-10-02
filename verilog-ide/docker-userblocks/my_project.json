@@ -1,0 +1,39 @@
+{
+  "id": "my_project",
+  "label": "test",
+  "symbol": "TEST",
+  "module": "my_project",
+  "category": "hierarchy/user",
+  "color": "#818cf8",
+  "description": "aoi custom",
+  "tutorial": "Instantiates the top module from project \"my_project\".",
+  "isHierarchical": true,
+  "ports": {
+    "inputs": [
+      {
+        "name": "sky130_and3_1_A",
+        "width": 1
+      },
+      {
+        "name": "sky130_and3_1_B",
+        "width": 1
+      },
+      {
+        "name": "sky130_and3_1_C",
+        "width": 1
+      },
+      {
+        "name": "sky130_inv2_1_A",
+        "width": 1
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sky130_or2_1_X",
+        "width": 1
+      }
+    ]
+  },
+  "sourceProject": "my_project",
+  "verilogCode": ""
+}
