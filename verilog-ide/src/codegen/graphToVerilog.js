@@ -95,9 +95,9 @@ export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
     node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=inSig(node,p.name);if(!seen.has(sig)){seen.add(sig);topIn.push({sig,width:p.width});}}});
     node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=outSig(node,p.name);const isFF=!!CELL_LOGIC[node.data.id]?.isFF;if(!seen.has(sig)){seen.add(sig);topOut.push({sig,width:p.width,isFF});}}});
   });
-  const portList=[...topIn.map(p=>`    input  wire ${p.width>1?`[${p.width-1}:0] `:''}${p.sig}`),...topOut.map(p=>`    output ${p.isFF?'reg ':'wire'}${p.width>1?`[${p.width-1}:0] `:''}${p.sig}`)].join(',\n');
-  const wires=[],regs=[];
-  edges.forEach(e=>{const src=nodes.find(n=>n.id===e.source);if(!src)return;const lg=CELL_LOGIC[src.data.id];const sp=src.data.ports?.outputs?.find(p=>p.name===e.sourceHandle);const w=sp?.width||1;(lg?.isFF?regs:wires).push(`    ${lg?.isFF?'reg ':'wire'}${w>1?` [${w-1}:0]`:''} ${e.data?.wireName||`w_${e.id}`};`);});
+  const portList=[...topIn.map(p=>`    input  wire ${p.width>1?`[${p.width-1}:0] `:''}${p.sig}`),...topOut.map(p=>`    output ${p.isFF?'reg ':'wire '}${p.width>1?`[${p.width-1}:0] `:''}${p.sig}`)].join(',\n');
+  const wires=[],regs=[],declared=new Set();
+  edges.forEach(e=>{const src=nodes.find(n=>n.id===e.source);if(!src)return;const nm=e.data?.wireName||`w_${e.id}`;if(declared.has(nm))return;declared.add(nm);const lg=CELL_LOGIC[src.data.id];const sp=src.data.ports?.outputs?.find(p=>p.name===e.sourceHandle);const w=sp?.width||1;(lg?.isFF?regs:wires).push(`    ${lg?.isFF?'reg ':'wire'}${w>1?` [${w-1}:0]`:''} ${e.data?.wireName||`w_${e.id}`};`);});
   const inclSet=new Set();
   nodes.forEach(n=>{if(!CELL_LOGIC[n.data.id]&&!n.data.isCustomInline&&n.data.file)inclSet.add(n.data.file);});
   const body=[];

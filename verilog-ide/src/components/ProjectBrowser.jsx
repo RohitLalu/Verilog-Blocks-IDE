@@ -1,3 +1,4 @@
+import{normalizeEdges}from'../lib/netNaming.js';
 import React,{useState,useEffect}from'react';
 import useStore from'../store/graphStore.js';
 
@@ -32,7 +33,7 @@ export default function ProjectBrowser(){
       store._pushHistory();
       useStore.setState({
         nodes:data.graph.nodes||[],
-        edges:data.graph.edges||[],
+        edges:normalizeEdges(data.graph.nodes||[],data.graph.edges||[]),
         instanceCounter:data.graph.instanceCounter||{},
       });
       setProjectName(name);
