@@ -8,6 +8,7 @@
     "server": "node server/server.js",
     "docker": "npm run build && node server/server.js",
     "electron": "electron .",
+    "test": "node --test",
     "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
   },
   "dependencies": {

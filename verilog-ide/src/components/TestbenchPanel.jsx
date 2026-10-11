@@ -1,3 +1,4 @@
+import{runSimulation}from'../lib/runSimulation.js';
 import React,{useState,useMemo}from'react';
 import useStore from'../store/graphStore.js';
 import{generateTestbench}from'../codegen/graphToVerilog.js';
@@ -46,39 +47,7 @@ export default function TestbenchPanel(){
   };
 
   // ── Run iverilog → auto-navigate to SimulatorPanel with VCD ───────────────
-  const handleRun=async()=>{
-    if(!window.api){
-      pushNotification('iverilog requires Docker — use docker compose up -d','warn');
-      return;
-    }
-    const verilog=generatedVerilog;
-    if(!verilog||verilog.trim()==='// Empty design\nmodule top();\nendmodule\n'){
-      pushNotification('Generate Verilog first (</> button)','warn');
-      return;
-    }
-    const tb=generateTestbench(nodes,edges,projectName,testbenchInputs,useCustomTestbench?customTestbench:'');
-    setGeneratedTestbench(tb);
-    setSimRunning(true);setSimOutput('');
-
-    try{
-      const res=await window.api.sim.run({projectName,verilog,testbench:tb});
-      setSimOutput(res.output||'');
-
-      if(res.vcd){
-        // Pipe VCD directly into the SimulatorPanel VCD viewer and navigate there
-        setLastVCD(res.vcd);
-        setActivePanel('simulator');   // auto-navigate — user lands on waveforms immediately
-        pushNotification('Simulation complete ✓','success');
-      }else{
-        pushNotification(res.ok?'Simulation done (no VCD)':'Simulation error','error');
-        setActivePanel('simulator');   // still navigate — console output visible there
-      }
-    }catch(e){
-      setSimOutput('Request failed: '+e.message);
-      pushNotification('Simulation request failed','error');
-    }
-    setSimRunning(false);
-  };
+  const handleRun=()=>runSimulation();
 
   return(
     <div style={{width:380,background:'#0d1117',borderLeft:'1px solid #1e2733',display:'flex',flexDirection:'column',fontFamily:"'Space Grotesk',sans-serif",flexShrink:0}}>

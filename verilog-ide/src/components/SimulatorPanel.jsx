@@ -75,7 +75,7 @@ export default function SimulatorPanel() {
 }
 
 function Hdr() {
-  const { lastVCD, setLastVCD, simOutput } = useStore();
+  const { lastVCD, setLastVCD, setActivePanel } = useStore();
   const downloadVCD = () => {
     if (!lastVCD) return;
     const a = document.createElement('a');
@@ -85,6 +85,7 @@ function Hdr() {
   return (
     <div style={{ padding:'8px 14px', borderBottom:'1px solid #1e2733', display:'flex',
       alignItems:'center', gap:10, flexShrink:0 }}>
+      <button onClick={() => setActivePanel('testbench')} style={smallBtn}>← Testbench</button>
       <span style={{ color:'#4ade80', fontSize:12, fontWeight:700 }}>📊 Simulation Results</span>
       <span style={{ color:'#334155', fontSize:10, fontFamily:"'JetBrains Mono',monospace" }}>
         iverilog → VCD

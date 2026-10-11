@@ -5,7 +5,7 @@ import BlockNode from'./BlockNode.jsx';
 import useStore from'../store/graphStore.js';
 const nodeTypes={blockNode:BlockNode};
 function WorkspaceInner(){
-  const{nodes,edges,onNodesChange,onEdgesChange,onConnect,addBlock,setPDKLocked,undo,redo}=useStore();
+  const{nodes,edges,onNodesChange,onEdgesChange,onConnect,addBlock,setPDKLocked,undo,redo,copySelection,pasteClipboard}=useStore();
   const wrapRef=useRef(null);const{screenToFlowPosition}=useReactFlow();
   const onDrop=useCallback(e=>{
     e.preventDefault();const raw=e.dataTransfer.getData('application/blockdef');if(!raw)return;
@@ -14,13 +14,18 @@ function WorkspaceInner(){
   },[screenToFlowPosition,addBlock,setPDKLocked]);
   const onDragOver=useCallback(e=>{e.preventDefault();e.dataTransfer.dropEffect='move';},[]);
   const onKeyDown=useCallback(e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
-    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
-  },[undo,redo]);
+    // Leave native text editing (param inputs inside nodes) alone
+    const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+    const mod=e.ctrlKey||e.metaKey,k=e.key.toLowerCase();
+    if(mod&&k==='z'&&!e.shiftKey){e.preventDefault();undo();}
+    if(mod&&(k==='y'||(k==='z'&&e.shiftKey))){e.preventDefault();redo();}
+    if(mod&&k==='c'){e.preventDefault();copySelection();}
+    if(mod&&k==='v'){e.preventDefault();pasteClipboard();}
+  },[undo,redo,copySelection,pasteClipboard]);
   return(
     <div ref={wrapRef} style={{flex:1,height:'100%'}} onDrop={onDrop} onDragOver={onDragOver} onKeyDown={onKeyDown} tabIndex={0}>
       <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-        nodeTypes={nodeTypes} fitView deleteKeyCode="Delete" multiSelectionKeyCode="Shift"
+        nodeTypes={nodeTypes} fitView snapToGrid snapGrid={[15,15]} deleteKeyCode="Delete" multiSelectionKeyCode="Shift"
         connectionLineStyle={{stroke:'#3b82f6',strokeWidth:1.5}}
         defaultEdgeOptions={{style:{stroke:'#3b82f6',strokeWidth:1.5},markerEnd:{type:'arrowclosed',color:'#3b82f6'}}}>
         <Background color="#141e2e" gap={20} size={1} variant="dots"/>

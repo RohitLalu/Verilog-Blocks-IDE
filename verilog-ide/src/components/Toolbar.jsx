@@ -1,6 +1,7 @@
 import React,{useState}from'react';
 import useStore from'../store/graphStore.js';
 import{generateVerilog,generateTestbench}from'../codegen/graphToVerilog.js';
+import{runSimulation}from'../lib/runSimulation.js';
 
 const mk=x=>({border:'1px solid #1e2733',borderRadius:6,fontSize:11,padding:'5px 11px',cursor:'pointer',
   fontFamily:"'Space Grotesk',sans-serif",fontWeight:500,display:'flex',alignItems:'center',gap:5,
@@ -41,8 +42,10 @@ export default function Toolbar({ onOpenPDKSelector }) {
   const handleSave = async () => {
     const verilog = doGenV();
     if (window.api) {
-      await window.api.project.save({ name:projectName, graph:{nodes,edges}, verilog, meta:{pdkId:selectedPDK?.id} });
-      setBadge('✓ Saved');
+      try {
+        await window.api.project.save({ name:projectName, graph:{nodes,edges}, verilog, meta:{pdkId:selectedPDK?.id} });
+        setBadge('✓ Saved');
+      } catch (e) { pushNotification('Save failed: ' + e.message, 'error'); return; }
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([verilog],{type:'text/plain'}));
@@ -54,21 +57,35 @@ export default function Toolbar({ onOpenPDKSelector }) {
   const handleYosys = async () => {
     const verilog = doGenV(); setSynthesisRunning(true); setActivePanel('synthesis');
     if (window.api) {
-      const res = await window.api.yosys.synth({ projectName, verilog, pdkRoot:selectedPDK?.rootPath, pdkId:selectedPDK?.id });
-      setSynthesisOutput(res.output);
-      pushNotification(res.ok ? 'Synthesis complete ✓' : 'Synthesis failed', res.ok ? 'success' : 'error');
+      try {
+        const res = await window.api.yosys.synth({ projectName, verilog, pdkRoot:selectedPDK?.rootPath, pdkId:selectedPDK?.id });
+        setSynthesisOutput(res.output);
+        if (res.needsPdkPath) {
+          pushNotification('Synthesis needs the PDK path — set it in the PDK selector', 'warn');
+          onOpenPDKSelector?.();
+        } else {
+          pushNotification(res.ok ? 'Synthesis complete ✓' : 'Synthesis failed', res.ok ? 'success' : 'error');
+        }
+      } catch (e) {
+        setSynthesisOutput('Request failed: ' + e.message);
+        pushNotification('Synthesis request failed', 'error');
+      }
     } else {
       setSynthesisOutput('⚠ Yosys requires Docker backend.\ndocker compose up -d');
     }
     setSynthesisRunning(false);
   };
 
-  // ⚡ Run: generate Verilog → navigate to testbench panel where ▶ iverilog lives.
-  // The actual iverilog run + VCD auto-navigation happens inside TestbenchPanel.
+  // ⚡ Run: generate Verilog, then simulate straight away if a testbench has been
+  // configured (stimulus set up, or a custom testbench enabled). Otherwise open the
+  // testbench panel so the user can set stimulus first.
   const handleSim = () => {
     doGenV();
+    const s = useStore.getState();
+    const hasTB = s.useCustomTestbench ? !!s.customTestbench.trim() : Object.keys(s.testbenchInputs).length > 0;
+    if (hasTB) { runSimulation(); return; }
     setActivePanel('testbench');
-    pushNotification('Verilog generated — click ▶ iverilog to simulate', 'info');
+    pushNotification('Configure stimulus in the testbench, then click ▶ iverilog', 'info');
   };
 
   const isLocked  = pdkLocked || nodes.length > 0;

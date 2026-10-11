@@ -1,6 +1,9 @@
+// Tool failures (yosys/iverilog/atalanta errors) come back as 200 + { ok:false, output }.
+// Anything non-2xx is a real server error and is thrown so callers' catch blocks see it.
+const parse = r => r.ok ? r.json() : r.text().then(t => { throw new Error(t || `HTTP ${r.status}`); });
 const post = (url, body) =>
-  fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r => r.json());
-const get = url => fetch(url).then(r => r.json());
+  fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(parse);
+const get = url => fetch(url).then(parse);
 
 const httpApi = {
   pdk: {

@@ -37,9 +37,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget \
     && rm -rf /var/lib/apt/lists/* \
     || (echo "WARNING: atalanta build failed — ATPG unavailable" && true)
 
-# ── Node.js 20 LTS ────────────────────────────────────────────────────────────
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+# ── Node.js 20 LTS — copied from the builder stage (no nodesource download) ──
+COPY --from=builder /usr/local/bin/node /usr/local/bin/node
+COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Diagnostic — never fails the build
 RUN node --version; \

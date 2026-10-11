@@ -4,6 +4,9 @@ const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const { spawn, spawnSync } = require('child_process');
+const { runSimulation } = require('./simRunner.js');
+const { runSynthesis } = require('./synthRunner.js');
+const { findLiberty } = require('./pdkFiles.js');
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
@@ -72,7 +75,7 @@ app.post('/api/pdk/validate-path', (req, res) => {
   };
   const found = {};
   (expected[pdkId] || []).forEach(f => { const h = findFile(rootPath, f, 4); if (h) found[f] = h; });
-  res.json({ ok: true, found });
+  res.json({ ok: true, found, liberty: findLiberty(pdkId, rootPath) });
 });
 app.post('/api/pdk/read-lib', (req, res) => {
   const { libPath } = req.body;
@@ -149,62 +152,27 @@ app.get('/api/project/user-blocks', (req, res) => {
 });
 
 // ── Yosys Synthesis ───────────────────────────────────────────────────────────
-app.post('/api/yosys/synth', (req, res) => {
+// Maps onto the selected PDK's real cells via its Liberty library. Refuses (needsPdkPath)
+// when the library can't be found — see synthRunner.js.
+app.post('/api/yosys/synth', async (req, res) => {
   const { projectName, verilog, pdkRoot, pdkId } = req.body;
-  const projDir = path.join(DIRS.projects, projectName || 'tmp'); fs.mkdirSync(projDir, { recursive: true });
-  const vPath = path.join(projDir, 'top.v');
-  const outV  = path.join(DIRS.synthesis, 'top_synth.v');
-  const outJ  = path.join(DIRS.synthesis, 'top_synth.json');
-  const ysP   = path.join(DIRS.synthesis, 'synth.ys');
-  fs.writeFileSync(vPath, verilog || '');
-  let script = `read_verilog -sv "${vPath}"\n`;
-  if (pdkRoot && exists(pdkRoot)) script += `read_verilog -sv "${pdkRoot}"\n`;
-  script += [
-    'hierarchy -top top', 'proc; opt; fsm; opt; memory; opt',
-    pdkId === 'sky130' ? 'synth_sky130 -top top' : 'synth -top top',
-    `write_verilog "${outV}"`, `write_json "${outJ}"`, 'stat',
-  ].join('\n');
-  fs.writeFileSync(ysP, script);
-  let out = '';
-  const proc = spawn('yosys', ['-s', ysP]);
-  proc.stdout.on('data', d => { out += d; }); proc.stderr.on('data', d => { out += d; });
-  proc.on('close', code => res.json({ ok: code === 0, output: out }));
-  proc.on('error', () => res.json({ ok: false, output: 'ERROR: yosys not found.' }));
+  try {
+    res.json(await runSynthesis({
+      projDir: path.join(DIRS.projects, projectName || 'tmp'),
+      outDir:  DIRS.synthesis,
+      verilog, pdkId, pdkRoot: pdkRoot || ENV_PDK[pdkId] || '',
+    }));
+  } catch (e) { res.status(500).json({ ok: false, output: e.message }); }
 });
 
 // ── iverilog Simulation ───────────────────────────────────────────────────────
 // Returns VCD directly in the response — UI auto-opens the web VCD viewer.
-app.post('/api/sim/run', (req, res) => {
+// The run itself lives in simRunner.js (shared with the Electron main process).
+app.post('/api/sim/run', async (req, res) => {
   const { projectName, verilog, testbench } = req.body;
-  const projDir = path.join(DIRS.projects, projectName || 'tmp');
-  const simDir  = path.join(projDir, 'sim'); fs.mkdirSync(simDir, { recursive: true });
-  const topPath = path.join(simDir, 'top.v');
-  const tbPath  = path.join(simDir, 'top_tb.v');
-  const outPath = path.join(simDir, 'sim.out');
-  const vcdPath = path.join(simDir, 'wave.vcd');
-  fs.writeFileSync(topPath, verilog || '');
-  fs.writeFileSync(tbPath, testbench || '');
-
-  const iv = spawn('iverilog', ['-g2012', '-o', outPath, tbPath, topPath]);
-  let compErr = '';
-  iv.stderr.on('data', d => { compErr += d; });
-  iv.on('error', () => res.json({
-    ok: false,
-    output: 'ERROR: iverilog not found in container. Rebuild with: docker build -t verilogblocks .',
-    vcd: null,
-  }));
-  iv.on('close', code => {
-    if (code !== 0) return res.json({ ok: false, output: 'Compile error:\n' + compErr, vcd: null });
-    const vvp = spawn('vvp', [outPath]);
-    let simOut = '';
-    vvp.stdout.on('data', d => { simOut += d; });
-    vvp.stderr.on('data', d => { simOut += d; });
-    vvp.on('close', () => {
-      const vcd = exists(vcdPath) ? fs.readFileSync(vcdPath, 'utf8') : null;
-      res.json({ ok: true, output: simOut, vcd });
-    });
-    vvp.on('error', () => res.json({ ok: false, output: 'ERROR: vvp not found.', vcd: null }));
-  });
+  const simDir = path.join(DIRS.projects, projectName || 'tmp', 'sim');
+  try { res.json(await runSimulation({ simDir, verilog, testbench })); }
+  catch (e) { res.status(500).json({ ok: false, output: e.message, vcd: null }); }
 });
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
