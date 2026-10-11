@@ -1,82 +1,99 @@
 # Verilog Blocks IDE
 
-A visual Verilog IDE for block-based design, PDK-native cell selection, hierarchy, synthesis, simulation, and timing analysis.
+A visual design environment for block-based digital logic development, PDK-aware cell selection, hierarchy management, synthesis, simulation, and analysis workflows.
 
-This repository contains the project under `iter1/verilog-ide-1`, which includes:
+This repository currently contains the active application under `verilog-ide/`. Older experiments and iterations are kept in `prev_iter/` for reference and are not the primary active project.
+
+## Current project status
+
+The active project includes:
 - React + Vite frontend
-- Electron support
 - Express backend API
-- Docker + Docker Compose runtime
-- PDK metadata for SkyWater SKY130
-- Yosys synthesis and Icarus Verilog simulation integration
+- Electron desktop support
+- Docker-ready runtime configuration
+- PDK registry and SkyWater SKY130 integration
+- Yosys synthesis and Icarus Verilog simulation support
+- STA, ATPG, testbench, and tutorial workflows
+- Project browser, hierarchy export, and reusable custom blocks
 
-Video walkthrough:
-https://drive.google.com/file/d/1n24EPcB0PYitIx7529NZyWlTy7Nj7-mx/view?usp=sharing
-## Project structure
+## Repository structure
 
-`iter1/verilog-ide-1/`
-- `package.json` – npm scripts and dependencies
-- `Dockerfile` – container build for production runtime
-- `docker-compose.yml` – recommended Docker runtime setup
-- `server/server.js` – Express backend and API routes
-- `src/` – React UI and application logic
-- `pdk/` – PDK registry and cell manifests
-- `public/` – public assets served by the frontend
-- `electron-main.js` / `preload.js` – Electron desktop support
-- `README-docker.md` – Docker usage notes
+```text
+.
+├── README.md
+├── LICENSE
+├── prev_iter/            # older prototype iterations
+└── verilog-ide/          # active application
+    ├── package.json
+    ├── package-lock.json
+    ├── Dockerfile
+    ├── docker-compose.yml
+    ├── vite.config.js
+    ├── electron-main.js
+    ├── preload.js
+    ├── index.html
+    ├── public/
+    ├── pdk/
+    ├── server/
+    ├── src/
+    ├── docker-projects/
+    ├── docker-synthesis/
+    ├── docker-userblocks/
+    ├── README-docker.md
+    ├── open.zsh
+    ├── close.zsh
+    └── rebuild.zsh
+```
 
-## Features
+## Features in the current build
 
-- Drag-and-drop Verilog block design
-- PDK-native cell selection for SkyWater SKY130
-- Project save/load and block export
-- Verilog generation from graph designs
-- Yosys-based synthesis support
-- Icarus Verilog testbench simulation
-- Timing analysis and waveform visualization
-- Docker-ready runtime with pre-installed EDA tools
+- Drag-and-drop block-based circuit design in a flow canvas
+- PDK-aware cell catalog and SkyWater SKY130 support
+- Project creation, loading, and persistence
+- Custom block creation and export as reusable user blocks
+- Hierarchy export for modular designs
+- Verilog generation from the block graph
+- Yosys-based synthesis workflow
+- Icarus Verilog testbench simulation and result handling
+- STA panel for static timing analysis
+- ATPG panel for test-generation related analysis
+- Tutorial panel for guided onboarding
+- Browser and Electron-based execution modes
+- Docker deployment for containerized usage
 
 ## Requirements
 
 ### Local development
 - Node.js 20.x or newer
 - npm
-- Optionally Electron for desktop mode
+- Optional: Electron runtime for desktop mode
 
-### Docker usage
-- Docker Engine
-- Docker Compose
-- A local SkyWater SKY130 PDK install (or another supported PDK)
+### Hardware/EDA integration
+- SkyWater SKY130 PDK installation for PDK validation and design workflows
+- Docker and Docker Compose for container-based runs
 
-## Setup and usage
+## Quick start
 
-### 1. Open the main project folder
-
-All commands should be executed from:
+From the repository root:
 
 ```bash
-cd ~/Verilog-Blocks-IDE/iter1/verilog-ide-1
-```
-
-### 2. Install dependencies
-
-```bash
+cd verilog-ide
 npm install
 ```
 
-### 3. Run in development mode
+### Run the frontend in development mode
 
 ```bash
 npm run dev
 ```
 
-Then open the frontend in your browser at:
+Open:
 
-```bash
+```text
 http://localhost:5173
 ```
 
-### 4. Run the Express backend server
+### Run the backend API
 
 In a second terminal:
 
@@ -84,94 +101,35 @@ In a second terminal:
 npm run server
 ```
 
-This starts the backend at `http://localhost:3000`.
+Backend runs at:
 
-### 5. Run the full app with Electron
+```text
+http://localhost:3000
+```
+
+### Run the desktop app
 
 ```bash
 npm run electron
 ```
 
-### 6. Build for production
+### Build for production
 
 ```bash
 npm run build
 ```
 
-### 7. Run with Docker
-
-Build and run the image:
-
-```bash
-npm run docker
-```
-
-Or use Docker Compose from `iter1/verilog-ide-1/`:
+### Docker workflow
 
 ```bash
 docker compose up -d
 ```
 
-Then open:
+The project includes a Docker setup with persistent folders for projects, synthesis output, and user blocks. More details are in `verilog-ide/README-docker.md`.
 
-```bash
-http://localhost:3000
-```
+## Main backend routes
 
-## Docker Compose details
-
-The included `docker-compose.yml`:
-- Builds the app image from `Dockerfile`
-- Exposes port `3000`
-- Mounts persistent host folders for projects, synthesis output, and user blocks
-- Mounts the SkyWater SKY130 PDK from `${HOME}/.ciel/ciel/sky130` into `/pdk/sky130`
-- Sets `SKY130_PDK_ROOT=/pdk/sky130/versions/...`
-
-### Recommended Docker commands
-
-```bash
-docker compose up -d
-
-docker compose logs -f
-docker compose down
-docker compose up -d --build
-```
-
-## PDK path and validation
-
-When the app starts, the PDK selector reads `iter1/verilog-ide-1/pdk/pdk-registry.json` and shows known PDKs.
-
-For Docker mode, the app uses container-internal paths such as:
-
-```text
-/pdk/sky130/versions/<hash>
-```
-
-If you use a different PDK location, update the volume mount and `SKY130_PDK_ROOT` environment variable in `docker-compose.yml`.
-
-## Usage workflow
-
-1. Open the IDE in the browser or Electron.
-2. Select your PDK and validate the PDK root path.
-3. Create a new project.
-4. Drag blocks onto the canvas and connect signals.
-5. Generate Verilog from the block graph.
-6. Save the project to persist it in `/app/projects` or the Docker volume.
-7. Run synthesis or simulation from the toolbar.
-8. Export completed blocks as reusable user blocks.
-
-## Important paths
-
-| Purpose | Container path | Host path (Docker) |
-|---|---|---|
-| Projects | `/app/projects` | `./docker-projects` |
-| Synthesis output | `/app/synthesis/output` | `./docker-synthesis` |
-| User blocks | `/app/pdk/user-blocks` | `./docker-userblocks` |
-| SkyWater PDK | `/pdk/sky130` | `${HOME}/.ciel/ciel/sky130` |
-
-## API and backend routes
-
-The backend exposes the following primary routes in `server/server.js`:
+The backend exposes the core API endpoints used by the IDE, including:
 
 - `GET /api/pdk/list`
 - `GET /api/pdk/cells-manifest/:id`
@@ -187,32 +145,22 @@ The backend exposes the following primary routes in `server/server.js`:
 - `POST /api/yosys/synth`
 - `POST /api/sim/run`
 
-## Troubleshooting
+## Usage workflow
 
-- If the page does not load, verify the server is running and the port is correct.
-- If PDK validation fails, confirm the host PDK folder is mounted into the container and that the path is correct.
-- If projects are not saved, ensure Docker volumes are mounted and the app is saving into `/app/projects`.
-- If synthesis or simulation fails, check the container logs and verify `yosys` / `iverilog` are installed.
+1. Open the app in the browser or desktop shell.
+2. Select a PDK and validate the local PDK root path.
+3. Create or load a project.
+4. Drag blocks to the canvas and connect signals.
+5. Generate Verilog from the design graph.
+6. Run synthesis or simulation.
+7. Review STA/ATPG outputs and export reusable blocks as needed.
 
 ## Notes
 
-- The repository root contains the main README and the application source lives in `iter1/verilog-ide-1`.
-- Docker mode uses a production build and bundled frontend assets in `/dist`.
-- Development mode uses Vite hot reload at `http://localhost:5173`.
-
-## Useful commands
-
-```bash
-# From iter1/verilog-ide-1
-npm install
-npm run dev
-npm run server
-npm run build
-npm run electron
-npm run docker
-```
+- The active implementation is in `verilog-ide/`.
+- `prev_iter/` contains earlier design iterations and is kept for historical reference.
+- The project is designed around a modern web frontend with support for desktop and containerized execution.
 
 ## License
 
-This project is licensed under the terms included in `LICENSE`.
-
+This project is licensed under the terms in `LICENSE`.
