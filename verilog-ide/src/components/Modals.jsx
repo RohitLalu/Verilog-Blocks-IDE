@@ -136,7 +136,7 @@ export function PDKSelector({onComplete}){
   const handleValidate=async(pdkId,path)=>{
     if(!window.api||!path)return;
     setChecking(c=>({...c,[pdkId]:true}));
-    const res=await window.api.pdk.validatePath({pdkId,rootPath:path});
+    let res;try{res=await window.api.pdk.validatePath({pdkId,rootPath:path});}catch(e){res={ok:false,error:e.message};}
     setChecking(c=>({...c,[pdkId]:false}));setVal(v=>({...v,[pdkId]:res}));
   };
   const handleConfirm=async()=>{
