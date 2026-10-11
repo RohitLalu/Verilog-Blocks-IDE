@@ -5,6 +5,8 @@ const path     = require('path');
 const fs       = require('fs');
 const { spawn, spawnSync } = require('child_process');
 const { runSimulation } = require('./simRunner.js');
+const { runSynthesis } = require('./synthRunner.js');
+const { findLiberty } = require('./pdkFiles.js');
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
@@ -73,7 +75,7 @@ app.post('/api/pdk/validate-path', (req, res) => {
   };
   const found = {};
   (expected[pdkId] || []).forEach(f => { const h = findFile(rootPath, f, 4); if (h) found[f] = h; });
-  res.json({ ok: true, found });
+  res.json({ ok: true, found, liberty: findLiberty(pdkId, rootPath) });
 });
 app.post('/api/pdk/read-lib', (req, res) => {
   const { libPath } = req.body;
@@ -150,27 +152,17 @@ app.get('/api/project/user-blocks', (req, res) => {
 });
 
 // ── Yosys Synthesis ───────────────────────────────────────────────────────────
-app.post('/api/yosys/synth', (req, res) => {
+// Maps onto the selected PDK's real cells via its Liberty library. Refuses (needsPdkPath)
+// when the library can't be found — see synthRunner.js.
+app.post('/api/yosys/synth', async (req, res) => {
   const { projectName, verilog, pdkRoot, pdkId } = req.body;
-  const projDir = path.join(DIRS.projects, projectName || 'tmp'); fs.mkdirSync(projDir, { recursive: true });
-  const vPath = path.join(projDir, 'top.v');
-  const outV  = path.join(DIRS.synthesis, 'top_synth.v');
-  const outJ  = path.join(DIRS.synthesis, 'top_synth.json');
-  const ysP   = path.join(DIRS.synthesis, 'synth.ys');
-  fs.writeFileSync(vPath, verilog || '');
-  let script = `read_verilog -sv "${vPath}"\n`;
-  if (pdkRoot && exists(pdkRoot)) script += `read_verilog -sv "${pdkRoot}"\n`;
-  script += [
-    'hierarchy -top top', 'proc; opt; fsm; opt; memory; opt',
-    pdkId === 'sky130' ? 'synth_sky130 -top top' : 'synth -top top',
-    `write_verilog "${outV}"`, `write_json "${outJ}"`, 'stat',
-  ].join('\n');
-  fs.writeFileSync(ysP, script);
-  let out = '';
-  const proc = spawn('yosys', ['-s', ysP]);
-  proc.stdout.on('data', d => { out += d; }); proc.stderr.on('data', d => { out += d; });
-  proc.on('close', code => res.json({ ok: code === 0, output: out }));
-  proc.on('error', () => res.json({ ok: false, output: 'ERROR: yosys not found.' }));
+  try {
+    res.json(await runSynthesis({
+      projDir: path.join(DIRS.projects, projectName || 'tmp'),
+      outDir:  DIRS.synthesis,
+      verilog, pdkId, pdkRoot: pdkRoot || ENV_PDK[pdkId] || '',
+    }));
+  } catch (e) { res.status(500).json({ ok: false, output: e.message }); }
 });
 
 // ── iverilog Simulation ───────────────────────────────────────────────────────

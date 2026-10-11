@@ -13,36 +13,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { run } = require('./proc.js');
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.VBIDE_SIM_TIMEOUT_MS) || 30000;
-const MAX_OUTPUT_BYTES = 1024 * 1024;
 
 const NOT_FOUND = tool =>
   `ERROR: ${tool} not found on PATH.\n` +
   `Docker: rebuild the image (docker build -t verilogblocks .).\n` +
   `Desktop: install Icarus Verilog (e.g. brew install icarus-verilog).`;
-
-function run(cmd, args, { cwd, timeoutMs }) {
-  return new Promise(resolve => {
-    let out = '', truncated = false, timedOut = false, settled = false, timer = null;
-    const settle = r => {
-      if (settled) return;
-      settled = true; clearTimeout(timer);
-      resolve({ ...r, out: truncated ? out + '\n[output truncated]' : out, timedOut });
-    };
-    const p = spawn(cmd, args, { cwd });
-    timer = setTimeout(() => { timedOut = true; p.kill('SIGKILL'); }, timeoutMs);
-    const collect = d => {
-      if (out.length >= MAX_OUTPUT_BYTES) { truncated = true; return; }
-      out += d;
-    };
-    p.stdout.on('data', collect);
-    p.stderr.on('data', collect);
-    p.on('error', error => settle({ code: null, error }));
-    p.on('close', code => settle({ code }));
-  });
-}
 
 function findVcd(simDir) {
   const files = fs.readdirSync(simDir).filter(f => f.toLowerCase().endsWith('.vcd'));

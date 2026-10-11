@@ -11,7 +11,7 @@ export async function loadPDK(pdkId,pdkRoot=null){
     try{
       const libMap={sky130:'sky130_fd_sc_hd__tt_025C_1v80.lib',gf180:'gf180mcu_fd_sc_mcu7t5v0__tt_025C_3v3.lib',ihp130:'sg13g2_stdcell_typ_1p2V_25C.lib'};
       const v=await window.api.pdk.validatePath({pdkId,rootPath:pdkRoot});
-      const libPath=libMap[pdkId]&&v.found?.[libMap[pdkId]];
+      const libPath=v.liberty||(libMap[pdkId]&&v.found?.[libMap[pdkId]]);
       if(libPath){const r=await window.api.pdk.readLib({libPath});if(r.ok){timingData=parseLibertyFile(r.content);console.log(`[PDK] Liberty: ${libPath} — ${Object.keys(timingData.cells).length} cells`);}}
     }catch(e){console.warn('[PDK] Liberty skip:',e.message);}
   }

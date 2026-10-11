@@ -60,7 +60,12 @@ export default function Toolbar({ onOpenPDKSelector }) {
       try {
         const res = await window.api.yosys.synth({ projectName, verilog, pdkRoot:selectedPDK?.rootPath, pdkId:selectedPDK?.id });
         setSynthesisOutput(res.output);
-        pushNotification(res.ok ? 'Synthesis complete ✓' : 'Synthesis failed', res.ok ? 'success' : 'error');
+        if (res.needsPdkPath) {
+          pushNotification('Synthesis needs the PDK path — set it in the PDK selector', 'warn');
+          onOpenPDKSelector?.();
+        } else {
+          pushNotification(res.ok ? 'Synthesis complete ✓' : 'Synthesis failed', res.ok ? 'success' : 'error');
+        }
       } catch (e) {
         setSynthesisOutput('Request failed: ' + e.message);
         pushNotification('Synthesis request failed', 'error');

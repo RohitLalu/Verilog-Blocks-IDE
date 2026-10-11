@@ -3,6 +3,8 @@ const path=require('path');
 const fs=require('fs');
 const{spawn}=require('child_process');
 const{runSimulation}=require('./server/simRunner.js');
+const{runSynthesis}=require('./server/synthRunner.js');
+const{findLiberty}=require('./server/pdkFiles.js');
 
 const isDev=!app.isPackaged;
 let win;
@@ -53,7 +55,7 @@ ipcMain.handle('pdk:validate-path',async(_,{pdkId,rootPath})=>{
   const expected={sky130:['sky130_fd_sc_hd.v','sky130_fd_sc_hd__tt_025C_1v80.lib'],gf180:['gf180mcu_fd_sc_mcu7t5v0.v','gf180mcu_fd_sc_mcu7t5v0__tt_025C_3v3.lib'],ihp130:['sg13g2_stdcell.v']};
   const found={};
   (expected[pdkId]||[]).forEach(f=>{const h=findFile(rootPath,f,4);if(h)found[f]=h;});
-  return{ok:true,found};
+  return{ok:true,found,liberty:findLiberty(pdkId,rootPath)};
 });
 ipcMain.handle('pdk:read-lib',async(_,{libPath})=>{
   if(!exists(libPath))return{ok:false,error:'Not found'};
@@ -101,22 +103,8 @@ ipcMain.handle('project:list-user-blocks',async()=>{
 });
 
 // ── Yosys ────────────────────────────────────────────────────────────────────
-ipcMain.handle('yosys:synth',async(_,{projectName,verilog,pdkRoot,pdkId})=>new Promise(resolve=>{
-  const projDir=path.join(PROJ,projectName||'tmp');fs.mkdirSync(projDir,{recursive:true});
-  const outDir=path.join(__dirname,'synthesis','output');fs.mkdirSync(outDir,{recursive:true});
-  const vPath=path.join(projDir,'top.v');
-  fs.writeFileSync(vPath,verilog||'');
-  let script=`read_verilog -sv "${vPath}"\n`;
-  if(pdkRoot&&exists(pdkRoot))script+=`read_verilog -sv "${pdkRoot}"\n`;
-  script+=['hierarchy -top top','proc; opt; fsm; opt; memory; opt',pdkId==='sky130'?'synth_sky130 -top top':pdkId==='gf180'?'synth -top top':'synth -top top',`write_verilog "${path.join(outDir,'top_synth.v')}"`,`write_json "${path.join(outDir,'top_synth.json')}"`,'stat'].join('\n');
-  const sp=path.join(outDir,'synth.ys');
-  fs.writeFileSync(sp,script);
-  let out='';
-  const proc=spawn('yosys',['-s',sp]);
-  proc.stdout.on('data',d=>{out+=d;});proc.stderr.on('data',d=>{out+=d;});
-  proc.on('close',code=>resolve({ok:code===0,output:out}));
-  proc.on('error',()=>resolve({ok:false,output:'ERROR: yosys not found.\n\nIn nix-shell:\ncd ~/librelane && nix-shell\nthen: cd ~/verilog-ide && npm start\n\nOr use Docker — yosys is pre-installed there.'}));
-}));
+ipcMain.handle('yosys:synth',async(_,{projectName,verilog,pdkRoot,pdkId})=>
+  runSynthesis({projDir:path.join(PROJ,projectName||'tmp'),outDir:path.join(__dirname,'synthesis','output'),verilog,pdkId,pdkRoot:pdkRoot||''}));
 
 // ── Simulation (iverilog) ─────────────────────────────────────────────────────
 ipcMain.handle('sim:run',async(_,{projectName,verilog,testbench})=>
