@@ -2,6 +2,7 @@ const{app,BrowserWindow,ipcMain,dialog}=require('electron');
 const path=require('path');
 const fs=require('fs');
 const{spawn}=require('child_process');
+const{runSimulation}=require('./server/simRunner.js');
 
 const isDev=!app.isPackaged;
 let win;
@@ -118,23 +119,8 @@ ipcMain.handle('yosys:synth',async(_,{projectName,verilog,pdkRoot,pdkId})=>new P
 }));
 
 // ── Simulation (iverilog) ─────────────────────────────────────────────────────
-ipcMain.handle('sim:run',async(_,{projectName,verilog,testbench})=>new Promise(resolve=>{
-  const simDir=path.join(PROJ,projectName||'tmp','sim');fs.mkdirSync(simDir,{recursive:true});
-  const top=path.join(simDir,'top.v'),tb=path.join(simDir,'top_tb.v'),out=path.join(simDir,'sim.out'),vcd=path.join(simDir,'wave.vcd');
-  fs.writeFileSync(top,verilog||'');fs.writeFileSync(tb,testbench||'');
-  let ce='';
-  const iv=spawn('iverilog',['-g2012','-o',out,tb,top]);
-  iv.stderr.on('data',d=>{ce+=d;});
-  iv.on('error',()=>resolve({ok:false,output:'ERROR: iverilog not found.\nIn Docker, it is pre-installed.\nLocally: brew install icarus-verilog',vcd:null}));
-  iv.on('close',code=>{
-    if(code!==0)return resolve({ok:false,output:'Compile error:\n'+ce,vcd:null});
-    let so='';
-    const vvp=spawn('vvp',[out]);
-    vvp.stdout.on('data',d=>{so+=d;});vvp.stderr.on('data',d=>{so+=d;});
-    vvp.on('close',()=>resolve({ok:true,output:so,vcd:exists(vcd)?fs.readFileSync(vcd,'utf8'):null}));
-    vvp.on('error',()=>resolve({ok:false,output:'ERROR: vvp not found.',vcd:null}));
-  });
-}));
+ipcMain.handle('sim:run',async(_,{projectName,verilog,testbench})=>
+  runSimulation({simDir:path.join(PROJ,projectName||'tmp','sim'),verilog,testbench}));
 
 // ── Dialog ───────────────────────────────────────────────────────────────────
 ipcMain.handle('dialog:open-folder',async()=>{

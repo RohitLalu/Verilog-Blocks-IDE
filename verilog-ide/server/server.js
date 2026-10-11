@@ -4,6 +4,7 @@ const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const { spawn, spawnSync } = require('child_process');
+const { runSimulation } = require('./simRunner.js');
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
@@ -174,37 +175,12 @@ app.post('/api/yosys/synth', (req, res) => {
 
 // ── iverilog Simulation ───────────────────────────────────────────────────────
 // Returns VCD directly in the response — UI auto-opens the web VCD viewer.
-app.post('/api/sim/run', (req, res) => {
+// The run itself lives in simRunner.js (shared with the Electron main process).
+app.post('/api/sim/run', async (req, res) => {
   const { projectName, verilog, testbench } = req.body;
-  const projDir = path.join(DIRS.projects, projectName || 'tmp');
-  const simDir  = path.join(projDir, 'sim'); fs.mkdirSync(simDir, { recursive: true });
-  const topPath = path.join(simDir, 'top.v');
-  const tbPath  = path.join(simDir, 'top_tb.v');
-  const outPath = path.join(simDir, 'sim.out');
-  const vcdPath = path.join(simDir, 'wave.vcd');
-  fs.writeFileSync(topPath, verilog || '');
-  fs.writeFileSync(tbPath, testbench || '');
-
-  const iv = spawn('iverilog', ['-g2012', '-o', outPath, tbPath, topPath]);
-  let compErr = '';
-  iv.stderr.on('data', d => { compErr += d; });
-  iv.on('error', () => res.json({
-    ok: false,
-    output: 'ERROR: iverilog not found in container. Rebuild with: docker build -t verilogblocks .',
-    vcd: null,
-  }));
-  iv.on('close', code => {
-    if (code !== 0) return res.json({ ok: false, output: 'Compile error:\n' + compErr, vcd: null });
-    const vvp = spawn('vvp', [outPath]);
-    let simOut = '';
-    vvp.stdout.on('data', d => { simOut += d; });
-    vvp.stderr.on('data', d => { simOut += d; });
-    vvp.on('close', () => {
-      const vcd = exists(vcdPath) ? fs.readFileSync(vcdPath, 'utf8') : null;
-      res.json({ ok: true, output: simOut, vcd });
-    });
-    vvp.on('error', () => res.json({ ok: false, output: 'ERROR: vvp not found.', vcd: null }));
-  });
+  const simDir = path.join(DIRS.projects, projectName || 'tmp', 'sim');
+  try { res.json(await runSimulation({ simDir, verilog, testbench })); }
+  catch (e) { res.status(500).json({ ok: false, output: e.message, vcd: null }); }
 });
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
