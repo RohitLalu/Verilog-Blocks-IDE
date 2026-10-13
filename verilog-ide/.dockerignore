@@ -1,0 +1,14 @@
+# Keep the image build context small and free of local data.
+node_modules
+dist
+.git
+test
+*.log
+projects
+synthesis
+atpg
+pdk/user-blocks
+.vbide-prefs.json
+docker-projects
+docker-synthesis
+docker-userblocks

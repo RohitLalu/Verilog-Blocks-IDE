@@ -4,7 +4,8 @@ const fs=require('fs');
 const{spawn}=require('child_process');
 const{runSimulation}=require('./server/simRunner.js');
 const{runSynthesis}=require('./server/synthRunner.js');
-const{findLiberty}=require('./server/pdkFiles.js');
+const{findLiberty,findFile}=require('./server/pdkFiles.js');
+const{safeId,safeName,projectDir,resolveInside,insideAnyRoot,sanitizePrefs}=require('./server/pathSafe.js');
 
 const isDev=!app.isPackaged;
 let win;
@@ -32,39 +33,31 @@ const PREFS=path.join(app.getPath('userData'),'vbide-prefs.json');
 const loadPrefs=()=>{try{return readJSON(PREFS);}catch{return{};}};
 const savePrefs=p=>{fs.mkdirSync(path.dirname(PREFS),{recursive:true});writeJSON(PREFS,p);};
 
-function findFile(dir,name,depth=3){
-  if(depth<0||!exists(dir))return null;
-  try{
-    for(const e of fs.readdirSync(dir)){
-      const full=path.join(dir,e);
-      if(e===name)return full;
-      try{if(fs.statSync(full).isDirectory()){const r=findFile(full,name,depth-1);if(r)return r;}}catch{}
-    }
-  }catch{}
-  return null;
-}
-
 // ── PDK ──────────────────────────────────────────────────────────────────────
 ipcMain.handle('pdk:list',async()=>readJSON(path.join(__dirname,'pdk','pdk-registry.json')));
 ipcMain.handle('pdk:cells-manifest',async(_,id)=>{
-  const p=path.join(__dirname,'pdk',id,'cells-manifest.json');
+  const p=resolveInside(path.join(__dirname,'pdk'),safeId(id,'PDK id'),'cells-manifest.json');
   return exists(p)?readJSON(p):null;
 });
 ipcMain.handle('pdk:validate-path',async(_,{pdkId,rootPath})=>{
-  if(!exists(rootPath))return{ok:false,error:'Path does not exist'};
+  if(typeof rootPath!=='string'||!rootPath||!exists(rootPath))return{ok:false,error:'Path does not exist'};
+  try{if(!fs.statSync(rootPath).isDirectory())return{ok:false,error:'Path is not a folder'};}catch{return{ok:false,error:'Path does not exist'};}
   const expected={sky130:['sky130_fd_sc_hd.v','sky130_fd_sc_hd__tt_025C_1v80.lib'],gf180:['gf180mcu_fd_sc_mcu7t5v0.v','gf180mcu_fd_sc_mcu7t5v0__tt_025C_3v3.lib'],ihp130:['sg13g2_stdcell.v']};
   const found={};
   (expected[pdkId]||[]).forEach(f=>{const h=findFile(rootPath,f,4);if(h)found[f]=h;});
   return{ok:true,found,liberty:findLiberty(pdkId,rootPath)};
 });
 ipcMain.handle('pdk:read-lib',async(_,{libPath})=>{
-  if(!exists(libPath))return{ok:false,error:'Not found'};
+  // Only Liberty files inside a configured PDK folder — never arbitrary files.
+  if(typeof libPath!=='string'||!libPath.toLowerCase().endsWith('.lib'))return{ok:false,error:'Only Liberty (.lib) files can be read.'};
+  const roots=[...Object.values(loadPrefs().pdkPaths||{}),process.env.SKY130_PDK_ROOT,process.env.GF180_PDK_ROOT,process.env.IHP130_PDK_ROOT];
+  if(!insideAnyRoot(libPath,roots))return{ok:false,error:'That file is not inside a configured PDK folder.'};
   try{return{ok:true,content:fs.readFileSync(libPath,'utf8')};}catch(e){return{ok:false,error:e.message};}
 });
 
 // ── Prefs ────────────────────────────────────────────────────────────────────
 ipcMain.handle('prefs:get',async()=>loadPrefs());
-ipcMain.handle('prefs:set',async(_,p)=>{savePrefs({...loadPrefs(),...p});return true;});
+ipcMain.handle('prefs:set',async(_,p)=>{savePrefs({...loadPrefs(),...sanitizePrefs(p)});return true;});
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 const PROJ=path.join(__dirname,'projects');
@@ -73,7 +66,7 @@ ipcMain.handle('project:list',async()=>{
   return fs.readdirSync(PROJ).filter(f=>{try{return fs.statSync(path.join(PROJ,f)).isDirectory();}catch{return false;}});
 });
 ipcMain.handle('project:save',async(_,{name,graph,verilog,testbench,meta})=>{
-  const dir=path.join(PROJ,name);fs.mkdirSync(dir,{recursive:true});
+  const dir=projectDir(PROJ,name);fs.mkdirSync(dir,{recursive:true});
   writeJSON(path.join(dir,'graph.json'),graph);
   fs.writeFileSync(path.join(dir,'top.v'),verilog||'');
   if(testbench)fs.writeFileSync(path.join(dir,'top_tb.v'),testbench);
@@ -81,7 +74,7 @@ ipcMain.handle('project:save',async(_,{name,graph,verilog,testbench,meta})=>{
   return{ok:true};
 });
 ipcMain.handle('project:load',async(_,name)=>{
-  const dir=path.join(PROJ,name);
+  const dir=projectDir(PROJ,name);
   const graphPath=path.join(dir,'graph.json');
   if(!exists(graphPath))throw new Error('Project not found');
   return{
@@ -93,8 +86,9 @@ ipcMain.handle('project:load',async(_,name)=>{
 });
 ipcMain.handle('project:export-as-block',async(_,{name,blockMeta})=>{
   const dir=path.join(__dirname,'pdk','user-blocks');fs.mkdirSync(dir,{recursive:true});
-  const verilog=exists(path.join(PROJ,name,'top.v'))?fs.readFileSync(path.join(PROJ,name,'top.v'),'utf8'):'';
-  writeJSON(path.join(dir,`${name}.json`),{...blockMeta,verilogCode:verilog});
+  const topV=path.join(projectDir(PROJ,name),'top.v');
+  const verilog=exists(topV)?fs.readFileSync(topV,'utf8'):'';
+  writeJSON(resolveInside(dir,`${safeName(name,'block name')}.json`),{...blockMeta,verilogCode:verilog});
   return{ok:true};
 });
 ipcMain.handle('project:list-user-blocks',async()=>{
@@ -104,11 +98,11 @@ ipcMain.handle('project:list-user-blocks',async()=>{
 
 // ── Yosys ────────────────────────────────────────────────────────────────────
 ipcMain.handle('yosys:synth',async(_,{projectName,verilog,pdkRoot,pdkId})=>
-  runSynthesis({projDir:path.join(PROJ,projectName||'tmp'),outDir:path.join(__dirname,'synthesis','output'),verilog,pdkId,pdkRoot:pdkRoot||''}));
+  runSynthesis({projDir:projectDir(PROJ,projectName||'tmp'),outDir:path.join(__dirname,'synthesis','output'),verilog,pdkId,pdkRoot:pdkRoot||''}));
 
 // ── Simulation (iverilog) ─────────────────────────────────────────────────────
 ipcMain.handle('sim:run',async(_,{projectName,verilog,testbench})=>
-  runSimulation({simDir:path.join(PROJ,projectName||'tmp','sim'),verilog,testbench}));
+  runSimulation({simDir:path.join(projectDir(PROJ,projectName||'tmp'),'sim'),verilog,testbench}));
 
 // ── Dialog ───────────────────────────────────────────────────────────────────
 ipcMain.handle('dialog:open-folder',async()=>{
@@ -118,7 +112,7 @@ ipcMain.handle('dialog:open-folder',async()=>{
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
 ipcMain.handle('atpg:run',async(_,{projectName,verilog})=>new Promise(resolve=>{
-  const projDir=path.join(__dirname,'projects',projectName||'tmp_atpg');
+  const projDir=projectDir(PROJ,projectName||'tmp_atpg');
   const atpgDir=path.join(__dirname,'atpg');
   fs.mkdirSync(projDir,{recursive:true});fs.mkdirSync(atpgDir,{recursive:true});
   const topV=path.join(projDir,'top.v'),synthV=path.join(atpgDir,'top_atpg_synth.v'),

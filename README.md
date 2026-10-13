@@ -127,6 +127,16 @@ docker compose up -d
 
 The project includes a Docker setup with persistent folders for projects, synthesis output, and user blocks. More details are in `verilog-ide/README-docker.md`.
 
+### Security notes
+
+The backend can read and write files, so it is locked down by default:
+
+- It listens on `127.0.0.1` only (`VBIDE_HOST` to change). The Docker image binds all interfaces *inside* the container, and `docker-compose.yml` publishes the port on loopback only.
+- It answers only requests whose `Host` is `localhost`, `127.0.0.1` or `[::1]` (plus `VBIDE_ALLOWED_HOSTS`), and only the page it serves. CORS is not enabled. In development, Vite proxies `/api` to it and its origin (`http://localhost:5173`) is allowed outside production; add others with `VBIDE_ALLOWED_ORIGINS`.
+- Project and block names must be a single path segment: letters, digits, spaces, `_ - . ( )`, at most 100 characters.
+- `/api/pdk/read-lib` serves only `.lib` files that sit inside a configured PDK folder.
+- Never expose the API to an untrusted network: there is no login. Use a reverse proxy with authentication for shared servers.
+
 ## Main backend routes
 
 The backend exposes the core API endpoints used by the IDE, including:

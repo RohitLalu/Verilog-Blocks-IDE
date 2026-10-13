@@ -25,18 +25,22 @@ const PDKS = {
   },
 };
 
-// Depth-limited walk that collects every file whose name satisfies `pred`.
-function findFiles(dir, pred, depth = 6, found = []) {
-  if (depth < 0 || found.length >= 64 || !exists(dir)) return found;
+// Depth- and size-limited walk that collects files whose name satisfies `pred`. The entry budget
+// stops a path like "/" from turning a PDK check into a scan of the whole disk.
+function findFiles(dir, pred, depth = 6, found = [], budget = { left: 20000 }, limit = 64) {
+  if (depth < 0 || found.length >= limit || budget.left <= 0 || !exists(dir)) return found;
   let entries;
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return found; }
   for (const e of entries) {
+    if (--budget.left <= 0 || found.length >= limit) break;
     const full = path.join(dir, e.name);
-    if (e.isDirectory()) findFiles(full, pred, depth - 1, found);
+    if (e.isDirectory()) findFiles(full, pred, depth - 1, found, budget, limit);
     else if (pred(e.name)) found.push(full);
   }
   return found;
 }
+
+const findFile = (dir, name, depth = 4) => findFiles(dir, n => n === name, depth, [], undefined, 1)[0] || null;
 
 // First exact-name match wins (in priority order); otherwise any typical-corner library.
 function findLiberty(pdkId, rootPath) {
@@ -50,4 +54,4 @@ function findLiberty(pdkId, rootPath) {
   return hits.sort()[0] || null;
 }
 
-module.exports = { PDKS, exists, findFiles, findLiberty };
+module.exports = { PDKS, exists, findFiles, findFile, findLiberty };

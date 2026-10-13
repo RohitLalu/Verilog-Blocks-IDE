@@ -5,12 +5,17 @@ services:
     build: { context: ., dockerfile: Dockerfile }
     container_name: verilogblocks
     restart: unless-stopped
-    ports: ["3000:3000"]
+    # Loopback only: the API can read and write files, so don't publish it to the whole network.
+    # To serve a classroom/LAN, change to "3000:3000", set VBIDE_ALLOWED_HOSTS below, and put it
+    # behind a reverse proxy with authentication.
+    ports: ["127.0.0.1:3000:3000"]
     environment:
       - SKY130_PDK_ROOT=/pdk/sky130/versions/0fe599b2afb6708d281543108caf8310912f54af
       - GF180_PDK_ROOT=/pdk/gf180mcuD
       - NODE_ENV=production
       - PORT=3000
+      - VBIDE_HOST=0.0.0.0
+      # - VBIDE_ALLOWED_HOSTS=lab-server.example.edu
     volumes:
       - ./docker-projects:/app/projects
       - ./docker-synthesis:/app/synthesis/output

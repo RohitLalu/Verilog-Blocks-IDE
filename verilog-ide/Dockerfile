@@ -63,6 +63,8 @@ COPY electron-main.js preload.js ./
 RUN mkdir -p /app/projects /app/synthesis/output /app/pdk/user-blocks /pdk /app/atpg
 
 ENV SKY130_PDK_ROOT="" GF180_PDK_ROOT="" IHP130_PDK_ROOT=""
+# Listen on all interfaces inside the container; publish the port on loopback only (see README).
+ENV VBIDE_HOST=0.0.0.0
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1

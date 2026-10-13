@@ -1,2 +1,28 @@
-prev_iter
+# ── Dependencies and build output ───────────────────────────────────────────────
+node_modules/
+dist/
+dist-electron/
+out/
+release/
+*.log
+npm-debug.log*
+.vite/
+
+# ── Packaged apps and installers ────────────────────────────────────────────────
+# A bundled Electron.app (~150 MB) is what once blocked a push to GitHub.
+*.app/
+*.dmg
+*.AppImage
+*.deb
+*.exe
+*.pkg
+*.msi
+
+# ── OS / editor noise ───────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ── Archived earlier iterations ─────────────────────────────────────────────────
+prev_iter

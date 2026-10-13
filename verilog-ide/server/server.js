@@ -1,30 +1,34 @@
 'use strict';
 const express  = require('express');
-const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const { spawn, spawnSync } = require('child_process');
 const { runSimulation } = require('./simRunner.js');
 const { runSynthesis } = require('./synthRunner.js');
-const { findLiberty } = require('./pdkFiles.js');
+const { findLiberty, findFile } = require('./pdkFiles.js');
+const { safeId, projectDir, safeName, resolveInside, insideAnyRoot, sanitizePrefs } = require('./pathSafe.js');
+const { guards, resolveHost, isLoopbackHost } = require('./security.js');
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
 const APP_ROOT = path.join(__dirname, '..');
 
+// VBIDE_DATA_DIR relocates everything the app WRITES (projects, outputs, prefs).
+const DATA = process.env.VBIDE_DATA_DIR ? path.resolve(process.env.VBIDE_DATA_DIR) : null;
 const DIRS = {
   dist:       path.join(APP_ROOT, 'dist'),
   pdk:        path.join(APP_ROOT, 'pdk'),
-  projects:   path.join(APP_ROOT, 'projects'),
-  synthesis:  path.join(APP_ROOT, 'synthesis', 'output'),
-  userBlocks: path.join(APP_ROOT, 'pdk', 'user-blocks'),
-  atpg:       path.join(APP_ROOT, 'atpg'),
+  projects:   DATA ? path.join(DATA, 'projects')    : path.join(APP_ROOT, 'projects'),
+  synthesis:  DATA ? path.join(DATA, 'synthesis')   : path.join(APP_ROOT, 'synthesis', 'output'),
+  userBlocks: DATA ? path.join(DATA, 'user-blocks') : path.join(APP_ROOT, 'pdk', 'user-blocks'),
+  atpg:       DATA ? path.join(DATA, 'atpg')        : path.join(APP_ROOT, 'atpg'),
 };
 Object.values(DIRS).forEach(d => fs.mkdirSync(d, { recursive: true }));
 
-const PREFS_FILE = path.join(APP_ROOT, '.vbide-prefs.json');
+const PREFS_FILE = path.join(DATA || APP_ROOT, '.vbide-prefs.json');
 
-app.use(cors());
+// No CORS: the API only answers the page it serves (see security.js).
+app.use(guards());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(DIRS.dist));
 app.use('/pdk', express.static(DIRS.pdk));
@@ -33,18 +37,6 @@ const readJSON  = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const writeJSON = (p, d) => fs.writeFileSync(p, JSON.stringify(d, null, 2));
 const exists    = p => { try { return fs.existsSync(p); } catch { return false; } };
 const loadPrefs = () => { try { return readJSON(PREFS_FILE); } catch { return {}; } };
-
-function findFile(dir, name, depth = 3) {
-  if (depth < 0 || !exists(dir)) return null;
-  try {
-    for (const e of fs.readdirSync(dir)) {
-      const full = path.join(dir, e);
-      if (e === name) return full;
-      try { if (fs.statSync(full).isDirectory()) { const r = findFile(full, name, depth-1); if (r) return r; } } catch {}
-    }
-  } catch {}
-  return null;
-}
 
 const ENV_PDK = {
   sky130: process.env.SKY130_PDK_ROOT || '',
@@ -58,16 +50,17 @@ app.get('/api/pdk/list', (req, res) => {
     const reg = readJSON(path.join(DIRS.pdk, 'pdk-registry.json'));
     reg.forEach(p => { if (ENV_PDK[p.id]) p.detectedPath = ENV_PDK[p.id]; });
     res.json(reg);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 app.get('/api/pdk/cells-manifest/:id', (req, res) => {
-  const p = path.join(DIRS.pdk, req.params.id, 'cells-manifest.json');
+  const p = resolveInside(DIRS.pdk, safeId(req.params.id, 'PDK id'), 'cells-manifest.json');
   if (!exists(p)) return res.status(404).json({ error: 'Not found' });
   res.json(readJSON(p));
 });
 app.post('/api/pdk/validate-path', (req, res) => {
-  const { pdkId, rootPath } = req.body;
-  if (!rootPath || !exists(rootPath)) return res.json({ ok: false, error: 'Path does not exist' });
+  const { pdkId, rootPath } = req.body || {};
+  if (typeof rootPath !== 'string' || !rootPath || !exists(rootPath)) return res.json({ ok: false, error: 'Path does not exist' });
+  try { if (!fs.statSync(rootPath).isDirectory()) return res.json({ ok: false, error: 'Path is not a folder' }); } catch { return res.json({ ok: false, error: 'Path does not exist' }); }
   const expected = {
     sky130: ['sky130_fd_sc_hd.v', 'sky130_fd_sc_hd__tt_025C_1v80.lib'],
     gf180:  ['gf180mcu_fd_sc_mcu7t5v0.v'],
@@ -78,8 +71,11 @@ app.post('/api/pdk/validate-path', (req, res) => {
   res.json({ ok: true, found, liberty: findLiberty(pdkId, rootPath) });
 });
 app.post('/api/pdk/read-lib', (req, res) => {
-  const { libPath } = req.body;
-  if (!libPath || !exists(libPath)) return res.json({ ok: false, error: 'Not found' });
+  // Only Liberty files inside a configured PDK folder (symlinks resolved) — never arbitrary files.
+  const { libPath } = req.body || {};
+  if (typeof libPath !== 'string' || !libPath.toLowerCase().endsWith('.lib')) return res.status(400).json({ ok: false, error: 'Only Liberty (.lib) files can be read.' });
+  const roots = [...Object.values(ENV_PDK), ...Object.values(loadPrefs().pdkPaths || {})];
+  if (!insideAnyRoot(libPath, roots)) return res.status(403).json({ ok: false, error: 'That file is not inside a configured PDK folder.' });
   try {
     if (fs.statSync(libPath).size > 50 * 1024 * 1024) return res.json({ ok: false, error: '>50MB' });
     res.json({ ok: true, content: fs.readFileSync(libPath, 'utf8') });
@@ -94,8 +90,8 @@ app.get('/api/prefs', (req, res) => {
   res.json(prefs);
 });
 app.post('/api/prefs', (req, res) => {
-  try { writeJSON(PREFS_FILE, { ...loadPrefs(), ...req.body }); res.json({ ok: true }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try { writeJSON(PREFS_FILE, { ...loadPrefs(), ...sanitizePrefs(req.body) }); res.json({ ok: true }); }
+  catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
 // ── Projects ──────────────────────────────────────────────────────────────────
@@ -110,17 +106,17 @@ app.get('/api/project/list', (req, res) => {
 app.post('/api/project/save', (req, res) => {
   try {
     const { name, graph, verilog, testbench, meta } = req.body;
-    const dir = path.join(DIRS.projects, name); fs.mkdirSync(dir, { recursive: true });
+    const dir = projectDir(DIRS.projects, name); fs.mkdirSync(dir, { recursive: true });
     writeJSON(path.join(dir, 'graph.json'), graph);
     fs.writeFileSync(path.join(dir, 'top.v'), verilog || '');
     if (testbench) fs.writeFileSync(path.join(dir, 'top_tb.v'), testbench);
     if (meta) writeJSON(path.join(dir, 'meta.json'), meta);
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message }); }
 });
 app.get('/api/project/load/:name', (req, res) => {
   try {
-    const dir = path.join(DIRS.projects, req.params.name);
+    const dir = projectDir(DIRS.projects, req.params.name);
     if (!exists(path.join(dir, 'graph.json'))) return res.status(404).json({ error: 'Not found' });
     res.json({
       graph:     readJSON(path.join(dir, 'graph.json')),
@@ -128,17 +124,17 @@ app.get('/api/project/load/:name', (req, res) => {
       testbench: exists(path.join(dir, 'top_tb.v'))  ? fs.readFileSync(path.join(dir, 'top_tb.v'), 'utf8') : '',
       meta:      exists(path.join(dir, 'meta.json')) ? readJSON(path.join(dir, 'meta.json')) : {},
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 app.post('/api/project/export-as-block', (req, res) => {
   try {
     const { name, blockMeta } = req.body;
+    const topV = path.join(projectDir(DIRS.projects, name), 'top.v');
     fs.mkdirSync(DIRS.userBlocks, { recursive: true });
-    const verilog = exists(path.join(DIRS.projects, name, 'top.v'))
-      ? fs.readFileSync(path.join(DIRS.projects, name, 'top.v'), 'utf8') : '';
-    writeJSON(path.join(DIRS.userBlocks, `${name}.json`), { ...blockMeta, verilogCode: verilog });
+    const verilog = exists(topV) ? fs.readFileSync(topV, 'utf8') : '';
+    writeJSON(resolveInside(DIRS.userBlocks, `${safeName(name, 'block name')}.json`), { ...blockMeta, verilogCode: verilog });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message }); }
 });
 app.get('/api/project/user-blocks', (req, res) => {
   try {
@@ -158,11 +154,11 @@ app.post('/api/yosys/synth', async (req, res) => {
   const { projectName, verilog, pdkRoot, pdkId } = req.body;
   try {
     res.json(await runSynthesis({
-      projDir: path.join(DIRS.projects, projectName || 'tmp'),
+      projDir: projectDir(DIRS.projects, projectName || 'tmp'),
       outDir:  DIRS.synthesis,
       verilog, pdkId, pdkRoot: pdkRoot || ENV_PDK[pdkId] || '',
     }));
-  } catch (e) { res.status(500).json({ ok: false, output: e.message }); }
+  } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message, output: e.message }); }
 });
 
 // ── iverilog Simulation ───────────────────────────────────────────────────────
@@ -170,9 +166,10 @@ app.post('/api/yosys/synth', async (req, res) => {
 // The run itself lives in simRunner.js (shared with the Electron main process).
 app.post('/api/sim/run', async (req, res) => {
   const { projectName, verilog, testbench } = req.body;
-  const simDir = path.join(DIRS.projects, projectName || 'tmp', 'sim');
-  try { res.json(await runSimulation({ simDir, verilog, testbench })); }
-  catch (e) { res.status(500).json({ ok: false, output: e.message, vcd: null }); }
+  try {
+    const simDir = path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'sim');
+    res.json(await runSimulation({ simDir, verilog, testbench }));
+  } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message, output: e.message, vcd: null }); }
 });
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
@@ -181,7 +178,7 @@ app.post('/api/sim/run', async (req, res) => {
 // bundled Python script (yosys_json_to_bench.py) to produce valid ISCAS89.
 app.post('/api/atpg/run', (req, res) => {
   const { projectName, verilog } = req.body;
-  const projDir  = path.join(DIRS.projects, projectName || 'tmp_atpg');
+  const projDir  = projectDir(DIRS.projects, projectName || 'tmp_atpg');   // a bad name throws -> error handler below
   fs.mkdirSync(projDir, { recursive: true });
   fs.mkdirSync(DIRS.atpg, { recursive: true });
 
@@ -314,6 +311,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.use('/api', (req, res) => res.status(404).json({ error: `Unknown API route: ${req.method} ${req.path}` }));
+
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   const i = path.join(DIRS.dist, 'index.html');
@@ -321,11 +320,26 @@ app.get('*', (req, res) => {
   else res.status(503).send('<h2>VerilogBlocks — run npm run build first</h2>');
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n  ⬡  VerilogBlocks IDE  →  http://localhost:${PORT}\n`);
-  console.log(`  PDK  sky130 → ${ENV_PDK.sky130 || 'not set'}`);
-  console.log(`  PDK  gf180  → ${ENV_PDK.gf180  || 'not set'}`);
-  console.log(`  ATPG atpg dir → ${DIRS.atpg}`);
-  const atpgOk = spawnSync('atalanta', ['--help']).pid;
-  console.log(`  ATPG atalanta → ${atpgOk ? 'ready' : 'not found (rebuild image)'}\n`);
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({ ok: false, error: err.message, output: err.message });
 });
+
+// Listen only when run directly (node server/server.js), so tests can mount `app` themselves.
+if (require.main === module) {
+  const HOST = resolveHost();
+  app.listen(PORT, HOST, () => {
+    console.log(`\n  ⬡  VerilogBlocks IDE  →  http://localhost:${PORT}\n`);
+    if (!isLoopbackHost(HOST)) {
+      console.log(`  ⚠  Listening on ${HOST}: anyone who can reach this port can read and write projects.`);
+      console.log('     Only do this on a trusted network. Allow hostnames with VBIDE_ALLOWED_HOSTS.\n');
+    }
+    console.log(`  PDK  sky130 → ${ENV_PDK.sky130 || 'not set'}`);
+    console.log(`  PDK  gf180  → ${ENV_PDK.gf180  || 'not set'}`);
+    console.log(`  ATPG atpg dir → ${DIRS.atpg}`);
+    const atpgOk = spawnSync('atalanta', ['--help']).pid;
+    console.log(`  ATPG atalanta → ${atpgOk ? 'ready' : 'not found (rebuild image)'}\n`);
+  });
+}
+
+module.exports = { app, DIRS };
