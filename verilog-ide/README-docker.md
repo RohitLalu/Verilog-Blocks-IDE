@@ -12,7 +12,7 @@ docker build -t verilogblocks .
 
 docker run -d \
   --name verilogblocks \
-  -p 3000:3000 \
+  -p 127.0.0.1:3000:3000 \
   -e SKY130_PDK_ROOT=/pdk/sky130/versions/0fe599b2afb6708d281543108caf8310912f54af \
   -v "$HOME/.ciel/ciel/sky130:/pdk/sky130:ro" \
   -v "$PWD/docker-projects:/app/projects" \
@@ -77,6 +77,14 @@ Paths must be container-internal (`/pdk/...`).
 | `SKY130_PDK_ROOT` | sky130 PDK root inside container |
 | `GF180_PDK_ROOT` | GF180MCU PDK root inside container |
 | `PORT` | Server port (default 3000) |
+| `VBIDE_HOST` | Address the server binds to. Defaults to `127.0.0.1`; the image sets `0.0.0.0` so the published port works. |
+| `VBIDE_ALLOWED_HOSTS` | Extra hostnames the API will answer to (comma-separated). Needed only if you serve it under a name other than `localhost`. |
+| `VBIDE_ALLOWED_ORIGINS` | Extra page origins allowed to call the API (comma-separated). Rarely needed. |
+| `VBIDE_DATA_DIR` | Relocates projects, synthesis output, ATPG output and preferences. |
+
+> **Publish the port on loopback only** (`-p 127.0.0.1:3000:3000`, as above). The API reads and writes files
+> on the host's behalf and has no login, so exposing it to a network exposes those files. For a shared
+> lab server, put it behind a reverse proxy that does authentication and set `VBIDE_ALLOWED_HOSTS`.
 
 ### Adding GF180MCU
 
@@ -136,7 +144,7 @@ Browser → Express server.js → yosys/iverilog/gtkwave + /pdk volumes
 
 - Container exits: `docker logs verilogblocks`
 - PDK not found: `docker exec verilogblocks ls /pdk/sky130/versions/`
-- Port conflict: `docker run -p 8080:3000 verilogblocks`
+- Port conflict: use another host port, e.g. `-p 127.0.0.1:8080:3000`
 
 ---
 
