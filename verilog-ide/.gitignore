@@ -1,0 +1,17 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-electron/
+out/
+release/
+*.log
+
+# Data the app writes at runtime (kept out of git; these also back the Docker volumes)
+/projects/
+/synthesis/
+/atpg/
+/pdk/user-blocks/
+/.vbide-prefs.json
+/docker-projects/
+/docker-synthesis/
+/docker-userblocks/
