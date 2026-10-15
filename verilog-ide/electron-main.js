@@ -130,7 +130,7 @@ ipcMain.handle('atpg:run',async(_,{projectName,verilog})=>new Promise(resolve=>{
   ys.on('close',ysCode=>{
     if(ysCode!==0||!exists(benchF))return resolve({ok:false,stage:'yosys',output:'Yosys bench export failed:\n'+ysOut});
     let atpgOut='';
-    const at=spawn('atalanta',[benchF]);
+    const at=spawn('atalanta',[benchF],{cwd:path.dirname(benchF)});   // it writes <name>.test into its cwd
     at.stdout.on('data',d=>{atpgOut+=d;});at.stderr.on('data',d=>{atpgOut+=d;});
     at.on('error',()=>resolve({ok:false,stage:'atalanta',output:'ERROR: atalanta not found.\nInstall from: https://github.com/CK-Explorer/atalanta'}));
     at.on('close',()=>{

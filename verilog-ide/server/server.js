@@ -227,7 +227,7 @@ app.post('/api/atpg/run', (req, res) => {
 
       // atalanta: ATPG on the bench file
       let atpgOut = '';
-      const at = spawn('atalanta', [benchF]);
+      const at = spawn('atalanta', [benchF], { cwd: path.dirname(benchF) });   // it writes <name>.test into its cwd
       at.stdout.on('data', d => { atpgOut += d; });
       at.stderr.on('data', d => { atpgOut += d; });
       at.on('error', () => res.json({ ok:false, stage:'atalanta',
