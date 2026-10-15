@@ -7,7 +7,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { runSynthesis } = require('../server/synthRunner.js');
-const { findLiberty } = require('../server/pdkFiles.js');
+const { findLiberty, chooseLiberty, PDKS } = require('../server/pdkFiles.js');
 const { removeCells } = require('../server/libertyFilter.js');
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'vbide-synth-'));
@@ -71,6 +71,26 @@ test('gf180: prefers 3v30, accepts the legacy 3v3 name, falls back to any typica
   assert.equal(findLiberty('gf180', root), legacy);
   root = tmp(); const other = touch(path.join(root, 'lib', L + '5v00.lib')); touch(path.join(root, 'lib', 'gf180mcu_fd_sc_mcu7t5v0__ff_n40C_5v50.lib'));
   assert.equal(findLiberty('gf180', root), other, 'must pick a typical corner, not ff');
+});
+
+test('when sky130A and sky130B both hold the library, the choice is deterministic (A)', () => {
+  // ciel installs both flavours. Candidates are passed in the "wrong" order on purpose, because
+  // directory listing order differs between filesystems; the selection must not depend on it.
+  const a = '/pdk/versions/h/sky130A/libs.ref/sky130_fd_sc_hd/lib/' + SKY_LIB, b = a.replace('sky130A', 'sky130B');
+  assert.equal(chooseLiberty(PDKS.sky130, [b, a]), a);
+  assert.equal(chooseLiberty(PDKS.sky130, [a, b]), a);
+  // and for real on disk, whichever order the folders were created in
+  for (const order of [['sky130B', 'sky130A'], ['sky130A', 'sky130B']]) {
+    const root = tmp(); const made = order.map(f => touch(path.join(root, f, 'libs.ref/sky130_fd_sc_hd/lib', SKY_LIB)));
+    assert.equal(findLiberty('sky130', root), made.find(p => p.includes('sky130A')));
+  }
+});
+
+test('exact library names still beat the typical-corner fallback, whatever their sort order', () => {
+  const L = 'gf180mcu_fd_sc_mcu7t5v0__tt_025C_';
+  assert.equal(chooseLiberty(PDKS.gf180, ['/a/' + L + '3v30.lib', '/z/' + L + '3v3.lib', '/0/' + L + '5v00.lib']), '/a/' + L + '3v30.lib');
+  assert.equal(chooseLiberty(PDKS.gf180, ['/z/' + L + '5v00.lib', '/a/' + L + '1v80.lib']), '/a/' + L + '1v80.lib', 'fallback = first in sorted order');
+  assert.equal(chooseLiberty(PDKS.gf180, []), null);
 });
 
 test('returns null for unknown PDKs and missing paths', () => {

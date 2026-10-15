@@ -42,16 +42,23 @@ function findFiles(dir, pred, depth = 6, found = [], budget = { left: 20000 }, l
 
 const findFile = (dir, name, depth = 4) => findFiles(dir, n => n === name, depth, [], undefined, 1)[0] || null;
 
-// First exact-name match wins (in priority order); otherwise any typical-corner library.
+// Choose among candidate Liberty files. Deterministic: candidates are sorted first, so when a PDK
+// install holds the same library twice (ciel ships both sky130A and sky130B) the result doesn't
+// depend on how the OS happens to order a directory. Exact names win, in priority order; then any
+// typical-corner library.
+function chooseLiberty(pdk, hits) {
+  const sorted = [...hits].sort();
+  for (const name of pdk.liberty) {
+    const h = sorted.find(f => path.basename(f) === name);
+    if (h) return h;
+  }
+  return sorted[0] || null;
+}
+
 function findLiberty(pdkId, rootPath) {
   const pdk = PDKS[pdkId];
   if (!pdk || !rootPath || !exists(rootPath)) return null;
-  const hits = findFiles(rootPath, n => pdk.liberty.includes(n) || pdk.libertyPattern.test(n));
-  for (const name of pdk.liberty) {
-    const h = hits.find(f => path.basename(f) === name);
-    if (h) return h;
-  }
-  return hits.sort()[0] || null;
+  return chooseLiberty(pdk, findFiles(rootPath, n => pdk.liberty.includes(n) || pdk.libertyPattern.test(n)));
 }
 
-module.exports = { PDKS, exists, findFiles, findFile, findLiberty };
+module.exports = { PDKS, exists, findFiles, findFile, findLiberty, chooseLiberty };
