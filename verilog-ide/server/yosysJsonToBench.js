@@ -24,6 +24,12 @@ for (const t of [
   '$_DLATCH_P_', '$_DLATCH_N_',
 ]) GATE_MAP.set(t, '__DFF__');
 
+// Yosys has far more storage cells than the table above lists ($_SDFF_NP0_, $_SDFFCE_*, $_DFFSR_*, $_ALDFF_*,
+// $_DLATCH_PP0_ ...). The original Python converter only knew the listed ones, so any other flip-flop was
+// treated as an unknown gate (q = BUFF(clk)): its Q never became an input, its D never an output, and the
+// clock was left dangling. Recognise the whole families instead of a fixed list.
+const isStorageCell = t => /^\$_(?:S?DFF|ALDFF|DLATCH|SR_)/.test(t);
+
 const DFF_CLK_PORTS = new Set(['C', 'CLK', 'CLKN', 'G', 'E']);              // clock/enable: stripped from PIs
 const DFF_RESET_PORTS = new Set(['R', 'S', 'RST', 'SET', 'RN', 'SN']);      // reset/set: stripped from PIs
 const CONSTANT_BITS = [0, 1, '0', '1', 'x', 'z'];
@@ -76,7 +82,7 @@ function convertNetlist(netlist) {
   for (const info of Object.values(cells)) {
     const ctype = info.type || '';
     const mapped = GATE_MAP.has(ctype) ? GATE_MAP.get(ctype) : null;
-    if (mapped === '__DFF__') dffCells.push(info);
+    if (mapped === '__DFF__' || isStorageCell(ctype)) dffCells.push(info);
     else if (mapped !== null || ['$_MUX_', '$_ANDNOT_', '$_ORNOT_'].includes(ctype)) combCells.push(info);
     else unknownCells.push(info);
   }

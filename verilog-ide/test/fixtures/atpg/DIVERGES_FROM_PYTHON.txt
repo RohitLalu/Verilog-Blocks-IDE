@@ -1,0 +1,5 @@
+Fixtures whose golden .bench is the corrected output of yosysJsonToBench.js, NOT the Python original's.
+The Python converter did not recognise these Yosys storage cells (it treated them as unknown gates and
+emitted e.g. "q = BUFF(clk)"). The live Python cross-check test skips the names listed here.
+abc033_d133
+abc033_d92
