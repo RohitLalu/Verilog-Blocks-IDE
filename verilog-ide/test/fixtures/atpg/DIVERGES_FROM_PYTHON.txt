@@ -1,5 +1,11 @@
 Fixtures whose golden .bench is the corrected output of yosysJsonToBench.js, NOT the Python original's.
-The Python converter did not recognise these Yosys storage cells (it treated them as unknown gates and
-emitted e.g. "q = BUFF(clk)"). The live Python cross-check test skips the names listed here.
+The Python converter (1) did not recognise many Yosys storage cells (it emitted e.g. "q = BUFF(clk)") and
+(2) could not express constants: a constant reaching a $_MUX_/$_ANDNOT_/$_ORNOT_ became BUFF(first input).
+On Yosys 0.9 a synchronous reset IS such a mux. Each golden here was checked for functional equivalence with
+the Yosys netlist (test/helpers/benchEval.js). The live Python cross-check test skips the names listed here.
 abc033_d133
 abc033_d92
+edge_const_inputs
+y09_d37
+y09_d45
+y09_d69

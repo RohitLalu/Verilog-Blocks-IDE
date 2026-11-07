@@ -5,12 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { convertNetlist, sanitize } = require('../server/yosysJsonToBench.js');
+const { checkEquivalent, MODELLED } = require('./helpers/benchEval.js');
 
 const DIR = path.join(__dirname, 'fixtures', 'atpg');
 const names = fs.readdirSync(DIR).filter(f => f.endsWith('.json')).map(f => f.slice(0, -5)).sort();
 const read = n => fs.readFileSync(path.join(DIR, n), 'utf8');
 const body = t => t.split('\n').filter(l => !l.startsWith('#')).join('\n');          // ignore the header comments
-const diverges = new Set(read('DIVERGES_FROM_PYTHON.txt').split('\n').slice(3).filter(Boolean));
+const diverges = new Set(read('DIVERGES_FROM_PYTHON.txt').split('\n').filter(l => /^\w+$/.test(l)));
 const convert = n => convertNetlist(JSON.parse(read(n + '.json'))).text;
 
 test('fixtures cover every Yosys cell type the converter knows', () => {
@@ -57,9 +58,68 @@ function problems(text) {
   for (const o of outs) if (!ins.has(o) && !drv.has(o)) bad.push('output never driven: ' + o);
   return bad;
 }
-// edge_const_inputs is a documented limitation: a constant reaching a gate that Yosys' `opt` failed to fold
 test('every generated bench is structurally valid (all nets declared, driven once)', () => {
-  for (const n of names.filter(n => n !== 'edge_const_inputs')) assert.deepEqual(problems(convert(n)), [], n);
+  for (const n of names) assert.deepEqual(problems(convert(n)), [], n);
+});
+
+// ── functional equivalence: the bench computes the same logic as the Yosys netlist ───────
+// (cells the checker doesn't model, e.g. $_TBUF_, are excluded)
+const STORAGE = /^\$_(?:S?DFF|ALDFF|DLATCH|SR_)/;
+const modelled = n => Object.values(JSON.parse(read(n + '.json')).modules.top.cells).every(c => MODELLED.has(c.type) || STORAGE.test(c.type));
+for (const n of names.filter(modelled)) {
+  test(`equivalent to the Yosys netlist: ${n}`, () => {
+    const nl = JSON.parse(read(n + '.json')), r = convertNetlist(nl);
+    assert.deepEqual(checkEquivalent(nl, r.text, r.bitToName), []);
+  });
+}
+
+// ── constants: the bench format has none, so they must be folded into the gates that read them ──
+// One cell with every combination of {signal, 0, 1} on its inputs, then a second gate reading its output so
+// that a folded constant has to propagate. (On Yosys 0.9 a synchronous reset is a $_MUX_ with a constant input.)
+const IN = { a: 2, b: 3, c: 4, d: 5 }, Z = 7;
+function constNetlist(type, ports, choice) {                     // choice: per-port 'sig' | 0 | 1
+  const dirs = { Y: 'output' }, conns = { Y: [6] };
+  ports.forEach((p, i) => { dirs[p] = 'input'; conns[p] = [choice[i] === 'sig' ? 2 + i : String(choice[i])]; });
+  const ins = ports.map((p, i) => choice[i] === 'sig' ? ['a', 'b', 'c'][i] : null).filter(Boolean);
+  return { modules: { top: {
+    ports: { a: P('input', [2]), b: P('input', [3]), c: P('input', [4]), d: P('input', [5]), y: P('output', [6]), z: P('output', [Z]) },
+    cells: { g: { type, connections: conns, port_directions: dirs },
+             h: { type: '$_XOR_', connections: { A: [6], B: [5], Y: [Z] }, port_directions: { A: 'input', B: 'input', Y: 'output' } } },
+    netnames: { a: { bits: [2] }, b: { bits: [3] }, c: { bits: [4] }, d: { bits: [5] }, y: { bits: [6] }, z: { bits: [Z] } } } } };
+}
+const combos = n => [...Array(3 ** n)].map((_, k) => [...Array(n)].map((__, i) => ['sig', 0, 1][Math.floor(k / 3 ** i) % 3]));
+const SHAPES = [['$_MUX_', ['A', 'B', 'S']], ['$_ANDNOT_', ['A', 'B']], ['$_ORNOT_', ['A', 'B']], ['$_NOT_', ['A']], ['$_BUF_', ['A']],
+  ...['$_AND_', '$_NAND_', '$_OR_', '$_NOR_', '$_XOR_', '$_XNOR_'].map(t => [t, ['A', 'B', 'C']])];
+
+test('every gate type is correct for every mix of signal / 0 / 1 inputs (and constants propagate)', () => {
+  let n = 0;
+  for (const [type, ports] of SHAPES) for (const choice of combos(ports.length)) {
+    const nl = constNetlist(type, ports, choice), r = convertNetlist(nl);
+    const label = `${type} ${JSON.stringify(choice)}`;
+    assert.deepEqual(checkEquivalent(nl, r.text, r.bitToName), [], label + '\n' + r.text);
+    assert.deepEqual(problems(r.text), [], label);
+    n++;
+  }
+  assert.ok(n > 200, 'ran ' + n);
+});
+
+test('a constant output is left undeclared (with a note) instead of being declared and never driven', () => {
+  const r = convertNetlist(constNetlist('$_AND_', ['A', 'B', 'C'], [0, 'sig', 'sig']));    // y is always 0
+  assert.doesNotMatch(r.text, /^OUTPUT\(y\)$/m);
+  assert.match(r.text, /^z = BUFF\(d\)$/m);                                                // z = 0 ^ d
+  assert.match(r.warnings.join('\n'), /1 output bit\(s\) are constant/);
+});
+
+test('synchronous reset as Yosys 0.9 emits it ($_MUX_ with a constant 0) becomes AND-NOT logic, not a dropped input', () => {
+  const nl = { modules: { top: {
+    ports: { clk: P('input', [2]), rst: P('input', [3]), d: P('input', [4]), q: P('output', [6]) },
+    cells: { m: { type: '$_MUX_', connections: { A: [4], B: ['0'], S: [3], Y: [5] }, port_directions: { A: 'input', B: 'input', S: 'input', Y: 'output' } },
+             f: { type: '$_DFF_P_', connections: { C: [2], D: [5], Q: [6] }, port_directions: { C: 'input', D: 'input', Q: 'output' } } },
+    netnames: { clk: { bits: [2] }, rst: { bits: [3] }, d: { bits: [4] }, n5: { bits: [5] }, q: { bits: [6] } } } } };
+  const r = convertNetlist(nl);
+  assert.match(r.text, /^INPUT\(rst\)$/m, 'rst feeds logic, so it must stay an input');
+  assert.match(r.text, /AND\(d, \S+\)/);
+  assert.deepEqual(checkEquivalent(nl, r.text, r.bitToName), []);
 });
 
 // ── behaviour the original got wrong: storage cells it did not know ──────────────────────

@@ -32,7 +32,8 @@ const isStorageCell = t => /^\$_(?:S?DFF|ALDFF|DLATCH|SR_)/.test(t);
 
 const DFF_CLK_PORTS = new Set(['C', 'CLK', 'CLKN', 'G', 'E']);              // clock/enable: stripped from PIs
 const DFF_RESET_PORTS = new Set(['R', 'S', 'RST', 'SET', 'RN', 'SN']);      // reset/set: stripped from PIs
-const CONSTANT_BITS = [0, 1, '0', '1', 'x', 'z'];
+// Constant bit values: literal "0"/"1" (and x/z, treated as 0). Yosys net ids are always >= 2.
+const literalConst = bit => (bit === 1 || bit === '1' ? 1 : (bit === 0 || bit === '0' || bit === 'x' || bit === 'z' ? 0 : undefined));
 
 // Signal names: letters, digits, underscore only; a leading digit gets an "n_" prefix.
 function sanitize(name) {
@@ -62,20 +63,13 @@ function convertNetlist(netlist) {
       if (isBit(bit) && !bitToName.has(bit)) bitToName.set(bit, sanitize(bits.length === 1 ? netName : `${netName}_${idx}`));
     });
   }
+  // Nets proven constant by folding (bit id -> 0|1). The bench format has no constants, so a constant must be
+  // folded INTO the gates that read it. On Yosys 0.9 a synchronous reset is a $_MUX_ with a constant 0 data
+  // input, and the original converter turned that into BUFF(d): wrong logic, and rst left unused.
+  const folded = new Map();
+  const valOf = bit => { const c = literalConst(bit); return c !== undefined ? c : (isBit(bit) ? folded.get(bit) : undefined); };
   // signal name for a bit, or null for constants
-  const sig = bit => (CONSTANT_BITS.includes(bit) ? null : (bitToName.has(bit) ? bitToName.get(bit) : `net_${bit}`));
-
-  // primary inputs / outputs from the module's port declarations
-  const declaredInputs = new Set(), declaredOutputs = new Set();
-  for (const [portName, info] of Object.entries(ports)) {
-    const bits = info.bits || [];
-    bits.forEach((bit, idx) => {
-      if (!isBit(bit)) return;
-      const sname = bitToName.has(bit) ? bitToName.get(bit) : sanitize(bits.length === 1 ? portName : `${portName}_${idx}`);
-      if (info.direction === 'input') declaredInputs.add(sname);
-      else if (info.direction === 'output') declaredOutputs.add(sname);
-    });
-  }
+  const sig = bit => (valOf(bit) !== undefined ? null : (bitToName.has(bit) ? bitToName.get(bit) : `net_${bit}`));
 
   // split cells into flip-flops / combinational / unknown (unknown ones fall back to BUFF)
   const dffCells = [], combCells = [], unknownCells = [];
@@ -89,6 +83,68 @@ function convertNetlist(netlist) {
   if (unknownCells.length) {
     warnings.push(`WARNING: ${unknownCells.length} unknown cell types treated as BUFF: ` +
       unknownCells.slice(0, 4).map(c => c.type).join(', '));
+  }
+
+  // ---- constant folding (fixpoint over the combinational cells) ----------------------------------------------
+  const ioOf = info => {
+    const conns = info.connections || {}, dirs = info.port_directions || {}, outBits = [], inBits = [];
+    for (const [p, bits] of Object.entries(conns)) for (const b of bits) {
+      if (!isBit(b) && literalConst(b) === undefined) continue;            // skip anything that isn't a net or constant
+      if (dirIs(dirs, p, 'output') && isBit(b)) outBits.push(b);
+      if (dirIs(dirs, p, 'input')) inBits.push(b);
+    }
+    return { conns, outBits, inBits };
+  };
+  const foldValue = info => {
+    const ctype = info.type || '', { conns, outBits, inBits } = ioOf(info);
+    if (outBits.length !== 1) return undefined;
+    const v = inBits.map(valOf);
+    const has = x => v.includes(x), every = x => v.length > 0 && v.every(y => y === x), known = v.length > 0 && v.every(y => y !== undefined);
+    const par = v.reduce((t, y) => t ^ (y || 0), 0);
+    const first = port => valOf((conns[port] && conns[port].length ? conns[port] : [0])[0]);
+    switch (ctype) {
+      case '$_AND_': return has(0) ? 0 : every(1) ? 1 : undefined;
+      case '$_NAND_': return has(0) ? 1 : every(1) ? 0 : undefined;
+      case '$_OR_': return has(1) ? 1 : every(0) ? 0 : undefined;
+      case '$_NOR_': return has(1) ? 0 : every(0) ? 1 : undefined;
+      case '$_XOR_': return known ? par : undefined;
+      case '$_XNOR_': return known ? 1 - par : undefined;
+      case '$_NOT_': return v[0] === undefined ? undefined : 1 - v[0];
+      case '$_BUF_': return v[0];
+      case '$_MUX_': {                                                      // Y = S ? B : A
+        const a = first('A'), b = first('B'), sel = first('S');
+        if (sel !== undefined) return sel ? b : a;
+        return a !== undefined && a === b ? a : undefined;
+      }
+      case '$_ANDNOT_': { const a = first('A'), b = first('B');            // A & ~B
+        return a === 0 || b === 1 ? 0 : (a === 1 && b === 0 ? 1 : undefined); }
+      case '$_ORNOT_': { const a = first('A'), b = first('B');             // A | ~B
+        return a === 1 || b === 0 ? 1 : (a === 0 && b === 1 ? 0 : undefined); }
+      default: return undefined;
+    }
+  };
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const info of combCells) {
+      const out = ioOf(info).outBits[0];
+      if (out === undefined || folded.has(out)) continue;
+      const val = foldValue(info);
+      if (val !== undefined) { folded.set(out, val); changed = true; }
+    }
+  }
+
+  // primary inputs / outputs from the module's port declarations
+  const declaredInputs = new Set(), declaredOutputs = new Set();
+  let constOutputs = 0;
+  for (const [portName, info] of Object.entries(ports)) {
+    const bits = info.bits || [];
+    bits.forEach((bit, idx) => {
+      if (!isBit(bit)) return;
+      if (valOf(bit) !== undefined) { constOutputs += (info.direction === 'output'); return; }   // constant: nothing to test
+      const sname = bitToName.has(bit) ? bitToName.get(bit) : sanitize(bits.length === 1 ? portName : `${portName}_${idx}`);
+      if (info.direction === 'input') declaredInputs.add(sname);
+      else if (info.direction === 'output') declaredOutputs.add(sname);
+    });
   }
 
   // DFF pseudo-PI/PO unfolding
@@ -130,44 +186,61 @@ function convertNetlist(netlist) {
     return name;
   };
 
+  // value + name of the first bit on a port (constants have a value and no name)
+  const at = (conns, port) => { const bit = (conns[port] && conns[port].length ? conns[port] : [0])[0]; return { v: valOf(bit), s: sig(bit) }; };
+  const emit = (out, type, ...ins) => gateLines.push(`${out} = ${type}(${ins.join(', ')})`);
+
   const genCell = info => {
-    const ctype = info.type || '', conns = info.connections || {}, dirs = info.port_directions || {};
-    const outBits = [], inBits = [];
-    for (const [p, bits] of Object.entries(conns)) {
-      for (const b of bits) {
-        if (!isBit(b)) continue;
-        if (dirIs(dirs, p, 'output')) outBits.push(b);
-        if (dirIs(dirs, p, 'input')) inBits.push(b);
-      }
-    }
+    const ctype = info.type || '', { conns, outBits, inBits } = ioOf(info);
     if (!outBits.length) return;
     const outSig = sig(outBits[0]);
-    if (!outSig) return;
-    const inSigs = inBits.map(sig).filter(Boolean);
+    if (!outSig) return;                                      // output proven constant: folded away, nothing to emit
     const gateType = GATE_MAP.has(ctype) ? GATE_MAP.get(ctype) : null;
+    const sigs = [], consts = [];                             // non-constant input names / constant input values
+    for (const b of inBits) { const v = valOf(b); if (v === undefined) sigs.push(sig(b)); else consts.push(v); }
 
-    if (ctype === '$_MUX_') {                       // Y = S ? B : A
-      const first = port => sig((conns[port] && conns[port].length ? conns[port] : [0])[0]);
-      const a = first('A'), b = first('B'), s = first('S');
-      if (!(a && b && s)) { if (inSigs.length) gateLines.push(`${outSig} = BUFF(${inSigs[0]})`); return; }
-      const ns = fresh(`${outSig}_ns`), t1 = fresh(`${outSig}_t1`), t2 = fresh(`${outSig}_t2`);
-      gateLines.push(`${ns} = NOT(${s})`, `${t1} = AND(${a}, ${ns})`, `${t2} = AND(${b}, ${s})`, `${outSig} = OR(${t1}, ${t2})`);
+    if (ctype === '$_MUX_') {                                 // Y = S ? B : A
+      const A = at(conns, 'A'), B = at(conns, 'B'), S = at(conns, 'S');
+      if (S.v !== undefined) { const pick = S.v ? B : A; if (pick.s) emit(outSig, 'BUFF', pick.s); return; }
+      if (A.s && B.s) {                                       // general case: (A & ~S) | (B & S)
+        const ns = fresh(`${outSig}_ns`), t1 = fresh(`${outSig}_t1`), t2 = fresh(`${outSig}_t2`);
+        emit(ns, 'NOT', S.s); emit(t1, 'AND', A.s, ns); emit(t2, 'AND', B.s, S.s); emit(outSig, 'OR', t1, t2);
+      } else if (A.s) {                                       // B constant
+        if (B.v === 0) { const ns = fresh(`${outSig}_ns`); emit(ns, 'NOT', S.s); emit(outSig, 'AND', A.s, ns); }   // S ? 0 : A
+        else emit(outSig, 'OR', A.s, S.s);                                                                          // S ? 1 : A
+      } else if (B.s) {                                       // A constant
+        if (A.v === 0) emit(outSig, 'AND', S.s, B.s);                                                               // S ? B : 0
+        else { const ns = fresh(`${outSig}_ns`); emit(ns, 'NOT', S.s); emit(outSig, 'OR', ns, B.s); }            // S ? B : 1
+      } else emit(outSig, A.v === 0 && B.v === 1 ? 'BUFF' : 'NOT', S.s);                                           // A, B constant and different
       return;
     }
-    if (ctype === '$_ANDNOT_' || ctype === '$_ORNOT_') {        // A & ~B   /   A | ~B
-      const op = ctype === '$_ANDNOT_' ? 'AND' : 'OR';
-      if (inSigs.length >= 2) {
-        const nb = fresh(`${outSig}_nb`);
-        gateLines.push(`${nb} = NOT(${inSigs[1]})`, `${outSig} = ${op}(${inSigs[0]}, ${nb})`);
-      } else if (inSigs.length) gateLines.push(`${outSig} = BUFF(${inSigs[0]})`);
+    if (ctype === '$_ANDNOT_' || ctype === '$_ORNOT_') {      // A & ~B   /   A | ~B
+      const A = at(conns, 'A'), B = at(conns, 'B'), op = ctype === '$_ANDNOT_' ? 'AND' : 'OR';
+      if (A.s && B.s) { const nb = fresh(`${outSig}_nb`); emit(nb, 'NOT', B.s); emit(outSig, op, A.s, nb); }
+      else if (A.s) emit(outSig, 'BUFF', A.s);                // B is the identity constant
+      else if (B.s) emit(outSig, 'NOT', B.s);                 // A is the identity constant
       return;
     }
-    if (gateType === 'NOT' || gateType === 'BUFF') { if (inSigs.length) gateLines.push(`${outSig} = ${gateType}(${inSigs[0]})`); return; }
-    if (gateType && inSigs.length) { gateLines.push(`${outSig} = ${gateType}(${inSigs.join(', ')})`); return; }
-    if (inSigs.length) gateLines.push(`${outSig} = BUFF(${inSigs[0]})`);   // unknown cell: BUFF of its first input
+    if (gateType === 'NOT' || gateType === 'BUFF') { if (sigs.length) emit(outSig, gateType, sigs[0]); return; }
+    if (gateType === 'AND' || gateType === 'NAND' || gateType === 'OR' || gateType === 'NOR') {
+      if (!sigs.length) return;                               // dominating constants were folded; the rest are identities
+      if (sigs.length === 1) emit(outSig, gateType === 'AND' || gateType === 'OR' ? 'BUFF' : 'NOT', sigs[0]);
+      else emit(outSig, gateType, ...sigs);
+      return;
+    }
+    if (gateType === 'XOR' || gateType === 'XNOR') {
+      const flip = consts.reduce((t, c) => t ^ c, 0) === 1;  // each constant 1 inverts the result
+      const base = (gateType === 'XNOR') !== flip ? 'XNOR' : 'XOR';
+      if (!sigs.length) return;
+      if (sigs.length === 1) emit(outSig, base === 'XOR' ? 'BUFF' : 'NOT', sigs[0]);
+      else emit(outSig, base, ...sigs);
+      return;
+    }
+    if (sigs.length) emit(outSig, 'BUFF', sigs[0]);          // unknown cell: BUFF of its first input
   };
   combCells.forEach(genCell);
   unknownCells.forEach(genCell);
+  if (constOutputs) warnings.push(`NOTE: ${constOutputs} output bit(s) are constant and were left undeclared (a constant has no stuck-at faults to test)`);
 
   const lines = [`# ISCAS89 bench — ${modName}`, '# Generated by VerilogBlocks IDE (yosysJsonToBench.js)'];
   if (dffCells.length) lines.push(`# ${dffCells.length} DFF(s) unfolded to pseudo-PI/PO for combinational ATPG`);
@@ -179,6 +252,7 @@ function convertNetlist(netlist) {
   return {
     text: lines.join('\n'),
     warnings,
+    bitToName,                       // Map(bit id -> signal name), for tests and debugging
     summary: { inputs: finalInputs.size, outputs: finalOutputs.size, gates: gateLines.length,
                combCells: combCells.length + unknownCells.length, dffs: dffCells.length },
   };
