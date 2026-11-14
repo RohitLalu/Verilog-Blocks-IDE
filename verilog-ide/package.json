@@ -1,6 +1,7 @@
 {
   "name": "verilog-blocks-ide",
   "version": "2.0.0",
+  "description": "Drag-and-drop Verilog block diagram editor for open-source ASIC education",
   "main": "electron-main.js",
   "scripts": {
     "dev": "vite",
@@ -9,7 +10,11 @@
     "docker": "npm run build && node server/server.js",
     "electron": "electron .",
     "test": "node --test",
-    "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+    "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:dist": "npm run build && electron . --use-dist",
+    "smoke": "npm run build && electron . --smoke-test",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "react": "18.3.1",
@@ -23,6 +28,51 @@
     "vite": "5.4.21",
     "concurrently": "8.2.2",
     "wait-on": "7.2.0",
-    "electron": "33.2.0"
+    "electron": "33.2.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.rohitlalu.vbide",
+    "productName": "VerilogBlocks IDE",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "server/**/*.js",
+      "pdk/**",
+      "!pdk/user-blocks/**",
+      "!server/server.js",
+      "!server/security.js",
+      "!node_modules/**/*",
+      "electron-main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "hardenedRuntime": true
+    },
+    "linux": {
+      "category": "Development",
+      "target": [
+        "AppImage"
+      ]
+    }
   }
 }

@@ -110,8 +110,36 @@ http://localhost:3000
 ### Run the desktop app
 
 ```bash
-npm run electron
+npm run start          # development: Vite dev server + Electron (hot reload)
+npm run electron:dist  # builds the UI, then runs Electron on the built files
+npm run smoke          # headless self-check: page renders, IPC works, saves round-trip, unsafe input refused
 ```
+
+The desktop app uses the same Yosys / iverilog / atalanta runners as the Docker server, calling the tools through your `PATH`.
+On macOS, apps started from Finder get a minimal `PATH`, so the usual Homebrew locations (`/opt/homebrew/bin`, `/usr/local/bin`) are added automatically.
+The tools are **not bundled yet**: install `yosys` and `iverilog` (for example `brew install yosys icarus-verilog`) and build `atalanta`
+(https://github.com/hsluoyz/Atalanta, run `make`, put the binary on your `PATH`).
+
+**Where your data lives**
+
+| Build | Projects, outputs, preferences |
+|-------|--------------------------------|
+| Packaged app | The per-user data folder (macOS `~/Library/Application Support/VerilogBlocks IDE`, Linux `~/.config/VerilogBlocks IDE`) |
+| `npm run start` / `electron:dist` | Inside the source tree (`projects/`, `synthesis/`, `atpg/`), so existing local projects stay visible |
+| Anything | Set `VBIDE_DATA_DIR=/some/folder` to override both |
+
+### Package the desktop app
+
+```bash
+npm run pack   # unpacked app in release/ (fast; what CI should test)
+npm run dist   # installers for the current platform: .dmg + .zip (macOS, arm64) or .AppImage (Linux)
+```
+
+Run `npm run smoke` (or the packaged binary with `--smoke-test`; on a headless Linux box use `xvfb-run -a <binary> --no-sandbox --smoke-test`)
+against a packaged build before releasing: it proves the window renders from `file://`, the preload bridge works, and data goes to the writable data folder.
+
+Not done yet (planned for v1.0): bundled Yosys / iverilog / atalanta, macOS code signing and notarization, auto-update, an app icon,
+and bundled fonts (the UI loads two Google Fonts and falls back to system fonts when offline).
 
 ### Build for production
 
