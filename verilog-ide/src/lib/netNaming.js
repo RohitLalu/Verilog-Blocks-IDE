@@ -22,3 +22,31 @@ export function normalizeEdges(nodes, edges) {
   });
   return [...out.values()];
 }
+
+// ── Instance names ──────────────────────────────────────────────────────────────────────
+// Next free "<base>_<n>" given the names already in use. `floor` lets a caller keep a session
+// counter so a deleted instance's name isn't immediately recycled. Deriving from the names that
+// actually exist (not just a counter) is what keeps names unique after save/open and undo,
+// neither of which restore a counter.
+export function nextInstanceName(names, base, floor = 0) {
+  const re = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_(\\d+)$');
+  let max = floor;
+  for (const nm of names) { const m = re.exec(nm || ''); if (m) max = Math.max(max, +m[1]); }
+  return { name: `${base}_${max + 1}`, index: max + 1 };
+}
+
+// Repair projects saved while duplicate names were possible: later duplicates get fresh names.
+export function dedupeInstanceNames(nodes) {
+  const all = new Set(nodes.map(n => n.data?.instanceName).filter(Boolean));
+  const seen = new Set(), renamed = [];
+  const out = nodes.map(n => {
+    const name = n.data?.instanceName;
+    if (name && !seen.has(name)) { seen.add(name); return n; }
+    const base = (name || n.data?.module || n.data?.id || 'inst').replace(/_\d+$/, '');
+    const { name: fresh } = nextInstanceName(all, base);
+    all.add(fresh); seen.add(fresh);
+    renamed.push({ id: n.id, from: name, to: fresh });
+    return { ...n, data: { ...n.data, instanceName: fresh } };
+  });
+  return { nodes: out, renamed };
+}
