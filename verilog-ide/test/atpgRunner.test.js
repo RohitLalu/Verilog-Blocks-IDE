@@ -47,9 +47,11 @@ test('a Yosys failure reports its stage and removes any previous results', { ski
   for (const f of ['top.bench', 'top.test', 'top_atpg.json']) assert.equal(fs.existsSync(path.join(d.outDir, f)), false, f + ' left behind');
 });
 
-test('missing atalanta is reported clearly (and the converter still ran)', { skip: !haveYosys && 'yosys not installed' }, async () => {
-  const bin = tmp(); fs.symlinkSync(spawnSync('which', ['yosys']).stdout.toString().trim(), path.join(bin, 'yosys'));
-  const oldPath = process.env.PATH; process.env.PATH = bin;
+test('missing atalanta is reported clearly (and the converter still ran)', { skip: (!haveYosys && 'yosys not installed') || (process.platform === 'win32' && 'needs a shell script shim') }, async () => {
+  // A shim, not a symlink: OSS CAD Suite's bin/yosys is a wrapper that finds its files relative to its own location
+  const bin = tmp(), shim = path.join(bin, 'yosys');
+  fs.writeFileSync(shim, `#!/bin/sh\nexec "${spawnSync('which', ['yosys']).stdout.toString().trim()}" "$@"\n`, { mode: 0o755 });
+  const oldPath = process.env.PATH; process.env.PATH = [bin, '/usr/bin', '/bin'].join(path.delimiter);
   try {
     const r = await runAtpg({ ...dirs(), verilog: 'module top(input a, b, output y); assign y = a & b; endmodule\n' });
     assert.equal(r.ok, false); assert.equal(r.stage, 'atalanta'); assert.match(r.output, /atalanta not found/);

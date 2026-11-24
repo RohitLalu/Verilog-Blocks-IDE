@@ -1,0 +1,17 @@
+{
+  "_comment": "Pinned tool sources for `npm run fetch-tools`. OSS CAD Suite publishes no checksums; these were recorded on first download over HTTPS (trust on first use). Change a pin only together with a full test run on that platform.",
+  "suite": {
+    "tag": "2026-11-14",
+    "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/{tag}/{asset}",
+    "assets": {
+      "linux-x64": { "asset": "oss-cad-suite-linux-x64-20261114.tgz", "size": 750723713, "sha256": "25d1960bc0f002c43b3579423c4e622bcffed49b7bb8b1f02df6426b1bdd2f26" },
+      "mac-arm64": { "asset": "oss-cad-suite-darwin-arm64-20261114.tgz", "size": 527123454, "sha256": "e8f4edd46387bc75dc7449e0b4834bf5a7bd8465e2d7c83239120a14ef22b3ca" },
+      "win-x64": { "asset": "oss-cad-suite-windows-x64-20261114.tgz", "size": 606214133, "sha256": "3928bd7a49c6ba4cee27205b9df9f41829a518398db8abe964b8378206232d97" }
+    }
+  },
+  "atalanta": {
+    "repo": "https://github.com/hsluoyz/Atalanta",
+    "commit": "a8e07fe4af80c55b0d4ca77e382731b03ad731dc",
+    "sources": ["error.cpp", "hash.cpp", "help.cpp", "read_cct.cpp", "structure.cpp", "io.cpp", "pio.cpp", "stem.cpp", "define_fault_list.cpp", "testability.cpp", "fan.cpp", "learn.cpp", "ppsfp.cpp", "truth.cpp", "lsim.cpp", "fsim.cpp", "random.cpp", "print.cpp", "sim.cpp", "atalanta.cpp"]
+  }
+}

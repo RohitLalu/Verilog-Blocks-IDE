@@ -15,3 +15,9 @@ release/
 /docker-projects/
 /docker-synthesis/
 /docker-userblocks/
+
+# Bundled EDA tools (built by `npm run fetch-tools`) and the download cache
+/resources/tools/
+/.cache/
+
+.DS_Store

@@ -14,7 +14,8 @@
     "electron:dist": "npm run build && electron . --use-dist",
     "smoke": "npm run build && electron . --smoke-test",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "node scripts/fetch-tools.js --check && npm run build && electron-builder",
+    "fetch-tools": "node scripts/fetch-tools.js"
   },
   "dependencies": {
     "react": "18.3.1",
@@ -68,10 +69,40 @@
       ],
       "hardenedRuntime": true
     },
+    "extraResources": [
+      {
+        "from": "resources/tools/${os}-${arch}",
+        "to": "tools",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "linux": {
       "category": "Development",
       "target": [
-        "AppImage"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     }
   }

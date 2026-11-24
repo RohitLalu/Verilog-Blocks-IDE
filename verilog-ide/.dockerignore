@@ -12,3 +12,7 @@ pdk/user-blocks
 docker-projects
 docker-synthesis
 docker-userblocks
+# desktop-only: bundled tools, their download cache, packaged apps
+resources/tools
+.cache
+release

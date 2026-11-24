@@ -36,7 +36,9 @@ const NOT_FOUND = {
   atalanta: [
     'ERROR: atalanta not found on PATH.', '',
     'Docker: rebuild the image (docker build -t verilogblocks .).',
-    'Desktop: atalanta is not bundled yet. Build it (https://github.com/hsluoyz/Atalanta, run make) and put the binary on your PATH.',
+    'Desktop: atalanta is not bundled by default (its licence allows teaching and research use only).',
+    'Build it (https://github.com/hsluoyz/Atalanta) and put the binary on your PATH, or build the app with',
+    '`npm run fetch-tools -- --with-atalanta`.',
   ].join('\n'),
 };
 

@@ -2,14 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { spawnSync } = require('child_process');
 const { runSimulation } = require('./server/simRunner.js');
 const { runSynthesis } = require('./server/synthRunner.js');
 const { runAtpg } = require('./server/atpgRunner.js');
 const { findLiberty, findFile } = require('./server/pdkFiles.js');
 const { safeId, safeName, projectDir, resolveInside, insideAnyRoot, sanitizePrefs } = require('./server/pathSafe.js');
 const { dataDirs, assertWritableLocations } = require('./server/appPaths.js');
-const { toolPath } = require('./server/toolEnv.js');
+const { toolPath, ivlBaseAlias } = require('./server/toolEnv.js');
+const { run } = require('./server/proc.js');
 
 // ── modes ─────────────────────────────────────────────────────────────────────────
 //   packaged      : loads dist/index.html from the app bundle; data lives in the per-user data folder
@@ -31,6 +31,13 @@ if (SMOKE) {
 
 // yosys / iverilog / atalanta are found through PATH: bundled copy first, Homebrew prefixes as a fallback
 process.env.PATH = toolPath({ envPath: process.env.PATH, resourcesPath: process.resourcesPath, packaged: app.isPackaged });
+const BUNDLED_TOOLS = app.isPackaged ? path.join(process.resourcesPath, 'tools') : null;
+if (BUNDLED_TOOLS && fs.existsSync(BUNDLED_TOOLS)) {
+  try {
+    const alias = ivlBaseAlias(BUNDLED_TOOLS);
+    if (alias) { process.env.VBIDE_IVL_BASE = path.join(alias, 'lib', 'ivl'); app.on('quit', () => fs.rmSync(path.dirname(alias), { recursive: true, force: true })); }
+  } catch (e) { console.error('Could not create a space-free path for iverilog; simulation may fail:', e.message); }
+}
 const DIRS = assertWritableLocations(dataDirs({ isPackaged: app.isPackaged, appDir: __dirname, userData: app.getPath('userData') }));
 
 let win;
@@ -156,7 +163,7 @@ ipcMain.handle('dialog:open-folder', async () => {
 // Run against a PACKAGED build this proves what the audit found broken: the page renders from file://, the
 // preload/IPC bridge works, writes go to a writable data folder (not the archive), and bad names are refused.
 async function smokeTest(loaded) {
-  const watchdog = setTimeout(() => { console.log('SMOKE ' + JSON.stringify({ ok: false, error: 'timeout after 45s' })); app.exit(2); }, 45000);
+  const watchdog = setTimeout(() => { console.log('SMOKE ' + JSON.stringify({ ok: false, error: 'timeout after 120s' })); app.exit(2); }, 120000);
   const result = { ok: false, packaged: app.isPackaged, dataRoot: DIRS.root, legacyLayout: DIRS.legacy };
   try {
     await loaded;
@@ -174,11 +181,34 @@ async function smokeTest(loaded) {
       } catch (e) { out.projectError = String(e); }
       out.badNameRejected = await api.project.save({ name: '../escape', graph: {} }).then(() => false, () => true);
       out.libOutsidePdkRejected = (await api.pdk.readLib({ libPath: '/etc/passwd' })).ok === false;
+      const v = 'module top(input a, input b, output y); assign y = a & b; endmodule\\n';
+      const tb = 'module tb; reg a=0, b=0; wire y; top dut(.a(a),.b(b),.y(y)); initial begin $dumpfile("wave.vcd"); $dumpvars(0, tb); #1 a=1; #1 b=1; #1 $finish; end endmodule\\n';
+      try { const s = await api.sim.run({ projectName: 'smoke-test', verilog: v, testbench: tb }); out.sim = { ok: s.ok, vcd: !!s.vcd, output: s.ok ? undefined : s.output }; } catch (e) { out.sim = { error: String(e) }; }
+      try { const a = await api.atpg.run({ projectName: 'smoke-test', verilog: v }); out.atpg = { ok: a.ok, stage: a.stage, coverage: a.coverage, output: a.ok ? undefined : a.output }; } catch (e) { out.atpg = { error: String(e) }; }
       return out;
     })()`);
-    const have = t => !spawnSync(t, [t === 'atalanta' ? '--help' : (t === 'yosys' || t === 'iverilog' ? '-V' : '-V')]).error;
-    Object.assign(result, page, { tools: { yosys: have('yosys'), iverilog: have('iverilog'), atalanta: have('atalanta') } });   // informational
+    // Which executable each tool name resolves to (spawn's PATH lookup; Windows adds .exe)
+    const where = t => process.env.PATH.split(path.delimiter).filter(Boolean)
+      .map(d => path.join(d, t + (process.platform === 'win32' ? '.exe' : ''))).find(exists) || null;
+    const tools = Object.fromEntries(['yosys', 'iverilog', 'vvp', 'atalanta'].map(t => [t, where(t)]));
+    const bundled = app.isPackaged && exists(path.join(process.resourcesPath, 'tools', 'bin'));
+    Object.assign(result, page, { bundledTools: bundled, tools });
     const problems = [];
+    if (bundled) {
+      // A packaged app with bundled tools must run them from inside the bundle, end to end
+      for (const t of ['yosys', 'iverilog', 'vvp']) if (!(tools[t] || '').startsWith(process.resourcesPath)) problems.push(`${t} resolves outside the app bundle: ${tools[t]}`);
+      if (!(page.sim && page.sim.ok && page.sim.vcd)) problems.push('simulation through IPC produced no waveform');
+      const atpgOk = page.atpg && (page.atpg.ok || (!tools.atalanta && page.atpg.stage === 'atalanta'));   // without atalanta, Yosys + converter must still succeed
+      if (!atpgOk) problems.push('ATPG through IPC failed');
+      if (tools.atalanta && !(tools.atalanta.startsWith(process.resourcesPath) && page.atpg.coverage > 0)) problems.push('bundled atalanta did not report coverage');
+      // Synthesis needs Yosys to start yosys-abc (the ATPG flow above does not use ABC)
+      const v = path.join(DIRS.root, 'abc-check.v');
+      fs.mkdirSync(DIRS.root, { recursive: true });
+      fs.writeFileSync(v, 'module top(input [3:0] a, b, output [3:0] y); assign y = a + b; endmodule\n');
+      const y = await run('yosys', ['-p', `read_verilog "${v}"; synth -top top; abc -g AND,OR,XOR; stat`], { cwd: DIRS.root, timeoutMs: 60000 });
+      result.abc = y.code === 0 && /Executing ABC pass/.test(y.out);
+      if (!result.abc) problems.push('yosys could not run ABC: ' + (y.error ? String(y.error) : y.out.slice(-800)));
+    }
     if (!(page.rootChildren > 0)) problems.push('page did not render (empty #root)');
     for (const g of ['pdk', 'prefs', 'project', 'yosys', 'sim', 'atpg', 'dialog']) if (!(page.apiGroups || []).includes(g)) problems.push('window.api.' + g + ' missing');
     if (!(page.pdkRegistry > 0)) problems.push('pdk registry not readable: ' + page.pdkError);
