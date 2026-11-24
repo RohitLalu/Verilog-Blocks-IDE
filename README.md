@@ -1,20 +1,57 @@
-# Verilog Blocks IDE
+# VerilogBlocks IDE (VBiDE)
 
-A visual design environment for block-based digital logic development, PDK-aware cell selection, hierarchy management, synthesis, simulation, and analysis workflows.
+A free desktop app for learning digital and ASIC design. Drag real SkyWater SKY130 (or GF180MCU) standard cells onto a
+canvas and wire them up. The app writes the Verilog, simulates it with Icarus Verilog, synthesises it with Yosys, and
+reports static timing and stuck-at fault coverage (ATPG). Yosys and Icarus Verilog come with the app.
 
-This repository currently contains the active application under `verilog-ide/`. Older experiments and iterations are kept in `prev_iter/` for reference and are not the primary active project.
+* **Website:** https://vbide.netlify.app (a one-minute video, screenshots, downloads)
+* **Download:** the [latest release](https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest) for macOS
+  (Apple silicon), Windows 10/11 (64-bit) and Linux (x86-64 AppImage)
+* **Licence:** MIT
 
-## Current project status
+## Install
 
-The active project includes:
-- React + Vite frontend
-- Express backend API
-- Electron desktop support
-- Docker-ready runtime configuration
-- PDK registry and SkyWater SKY130 integration
-- Yosys synthesis and Icarus Verilog simulation support
-- STA, ATPG, testbench, and tutorial workflows
-- Project browser, hierarchy export, and reusable custom blocks
+| System | File | First launch |
+|--------|------|--------------|
+| macOS (M1 or newer) | `VerilogBlocks-IDE-mac-arm64.dmg` | Drag the app to Applications. The app is not signed yet, so macOS may call it "damaged": run `xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"` once. |
+| Windows 10/11 | `VerilogBlocks-IDE-Setup-x64.exe` (or the portable `-win-x64.zip`) | SmartScreen may say "Windows protected your PC": click **More info**, then **Run anyway**. |
+| Linux x86-64 | `VerilogBlocks-IDE-linux-x86_64.AppImage` | `chmod +x VerilogBlocks-IDE-linux-x86_64.AppImage`, then run it. |
+
+Fault coverage (ATPG) also needs [atalanta](https://github.com/hsluoyz/Atalanta) on your `PATH`. It is not bundled
+because its licence allows teaching and research use only. Synthesis onto real cells needs the PDK's Liberty file:
+point the app at your SKY130 or GF180 PDK folder when it asks.
+
+## What you can do
+
+1. **Start a project** on a process (SkyWater SKY130 or GlobalFoundries GF180MCU).
+2. **Draw** by dragging standard cells onto the canvas and wiring output pins to input pins. Wires are named after
+   their driver; mismatched widths and second drivers are refused. Undo, redo, copy and paste work.
+3. **Read the Verilog**: structural Verilog updates as you draw. Unconnected pins become the module's ports.
+4. **Simulate** with Icarus Verilog: pick a constant, clock, sequence or random stimulus per input. All inputs run in
+   parallel, and the waveform opens showing the whole run.
+5. **Synthesise** with Yosys onto the PDK's real cells (cell list and chip area).
+6. **Check timing** (critical path, slack, maximum frequency, shown on the canvas) and **fault coverage** (ATPG).
+7. **Reuse**: save a design as a block and place it inside bigger designs (hierarchy).
+
+Everything runs on your computer. Projects are ordinary files in your user folder (see *Where your data lives*).
+
+## Roadmap
+
+**v2.0.2 (next)**
+
+* Rename the inputs and outputs of individual blocks, especially the design's primary inputs and outputs
+  (today they are named `<instance>_<pin>`).
+* A learning assistant: ask questions about your circuit, Verilog or the EDA steps. It runs a small open-source model
+  on your own computer through [Ollama](https://ollama.com) (installed separately); no data leaves the machine.
+  A built-in runtime may follow once the feature has proved useful.
+* Promo video: soft background music, a Yosys synthesis run, and a bigger module built from smaller custom modules.
+
+**Later**
+
+* The complete [LibreLane](https://github.com/librelane/librelane) RTL-to-GDS flow, driven from the GUI.
+* An agentic assistant for chip design that proposes and carries out design decisions once the requirements are
+  clearly understood.
+* A GDS layout viewer, in the spirit of the [Tiny Tapeout GDS viewer](https://gds-viewer.tinytapeout.com).
 
 ## Repository structure
 
@@ -22,57 +59,38 @@ The active project includes:
 .
 ├── README.md
 ├── LICENSE
-├── prev_iter/            # older prototype iterations
-└── verilog-ide/          # active application
-    ├── package.json
-    ├── package-lock.json
-    ├── Dockerfile
-    ├── docker-compose.yml
-    ├── vite.config.js
-    ├── electron-main.js
-    ├── preload.js
-    ├── index.html
-    ├── public/
-    ├── pdk/
-    ├── server/
-    ├── src/
-    ├── docker-projects/
-    ├── docker-synthesis/
-    ├── docker-userblocks/
-    ├── README-docker.md
-    ├── open.zsh
-    ├── close.zsh
-    └── rebuild.zsh
+├── netlify.toml            # website deploy: publishes website/site, no build step
+├── .github/workflows/      # desktop.yml: build + test + package on macOS, Linux, Windows; releases on v* tags
+├── website/
+│   ├── site/               # the static website (index.html, screenshots, promo video)
+│   ├── capture/            # capture.js: screenshots of the real app
+│   └── video/              # record.js: records the promo video from the real app
+├── prev_iter/              # older prototype iterations (reference only)
+└── verilog-ide/            # the application
+    ├── src/                # React UI (canvas, panels, Verilog/testbench generation, VCD viewer)
+    ├── server/             # tool runners shared by the desktop app and the Docker server
+    ├── electron-main.js, preload.js
+    ├── scripts/fetch-tools.js, tools/tools.lock.json   # bundled Yosys / Icarus Verilog
+    ├── pdk/                # PDK registry and cell manifests
+    ├── test/               # node --test suite
+    ├── Dockerfile, docker-compose.yml, README-docker.md
+    └── package.json
 ```
 
-## Features in the current build
+## Development
 
-- Drag-and-drop block-based circuit design in a flow canvas
-- PDK-aware cell catalog and SkyWater SKY130 support
-- Project creation, loading, and persistence
-- Custom block creation and export as reusable user blocks
-- Hierarchy export for modular designs
-- Verilog generation from the block graph
-- Yosys-based synthesis workflow
-- Icarus Verilog testbench simulation and result handling
-- STA panel for static timing analysis
-- ATPG panel for test-generation related analysis
-- Tutorial panel for guided onboarding
-- Browser and Electron-based execution modes
-- Docker deployment for containerized usage
+### Requirements
 
-## Requirements
-
-### Local development
+#### Local development
 - Node.js 20.x or newer
 - npm
 - Optional: Electron runtime for desktop mode
 
-### Hardware/EDA integration
+#### Hardware/EDA integration
 - SkyWater SKY130 PDK installation for PDK validation and design workflows
 - Docker and Docker Compose for container-based runs
 
-## Quick start
+### Quick start
 
 From the repository root:
 
@@ -162,6 +180,11 @@ Releases go to the repository's GitHub **Releases** page as a draft that you rev
 4. On GitHub, open **Releases**, check the draft and its files, then click **Publish release**.
 
 The tag must match the version (`v` + `version`), or the release job stops.
+Create releases by pushing the tag as above. If you start one on GitHub's *Draft a new release* page instead, the
+workflow attaches the installers to that release rather than making a second one.
+
+The website's download buttons link to `releases/latest/download/<file>`, so publishing a release updates them; the
+installer names carry no version number for that reason.
 Public installers never include atalanta (see below).
 
 Until the apps are code-signed, users see a warning the first time they open them:
@@ -177,7 +200,7 @@ Until the apps are code-signed, users see a warning the first time they open the
 (size and SHA-256 checked) and keeps only what the app runs: Yosys, yosys-abc, iverilog, vvp, their data files, their
 licences, and the shared libraries they actually load. On Linux it asks the suite's own loader; on macOS it walks
 `otool -L`; on Windows it reads the DLL import tables. It then runs the result with a scrubbed environment (compile and
-simulate, synthesise through ABC). Sizes: about 60 MB on macOS and about 210 MB on Windows (MinGW builds are larger).
+simulate, synthesise through ABC). Sizes: about 60 MB on macOS, 140 MB on Linux and 240 MB on Windows (MinGW builds are larger).
 The archive is cached in `.cache/tools/`, and neither folder is committed.
 
 * `--with-atalanta` (or `VBIDE_BUNDLE_ATALANTA=1`) also compiles atalanta from the pinned commit. **Off by default**:
@@ -189,7 +212,8 @@ The archive is cached in `.cache/tools/`, and neither folder is committed.
   publishing installers.
 * iverilog cannot handle a space in its own install path (it builds shell command lines unquoted). Installed apps
   usually have one (`/Applications/VerilogBlocks IDE.app`). On macOS and Linux the app passes iverilog a space-free
-  alias (a symlink in a private temp folder). On Windows iverilog uses the 8.3 short path itself.
+  alias (a symlink in a private temp folder); on Windows a directory junction, because 8.3 short names can be switched
+  off. Each Windows DLL sits next to the programs that load it, so another MinGW runtime on `PATH` can't be picked up.
 
 Not done yet: code signing and notarization (macOS, Windows), auto-update, an app icon, and bundled fonts. The UI loads
 two Google Fonts and falls back to system fonts when offline.
@@ -199,6 +223,20 @@ two Google Fonts and falls back to system fonts when offline.
 ```bash
 npm run build
 ```
+
+### Website and video
+
+The site in `website/site/` is plain HTML (no build). Netlify publishes it from `main` using `netlify.toml`.
+Its screenshots and the promo video are recorded from the real app:
+
+```bash
+cd verilog-ide && npm run build
+npx electron ../website/capture/capture.js    # screenshots -> website/site/assets/shots/
+npx electron ../website/video/record.js       # video -> website/site/assets/vbide-promo.mp4 (+ poster); needs ffmpeg
+```
+
+Both open the app in a window and drive it; leave the window visible while they run. Put `atalanta` on `PATH` first
+so the ATPG step has results.
 
 ### Docker workflow
 
@@ -218,7 +256,7 @@ The backend can read and write files, so it is locked down by default:
 - `/api/pdk/read-lib` serves only `.lib` files that sit inside a configured PDK folder.
 - Never expose the API to an untrusted network: there is no login. Use a reverse proxy with authentication for shared servers.
 
-## Main backend routes
+### Main backend routes
 
 The backend exposes the core API endpoints used by the IDE, including:
 
@@ -235,22 +273,9 @@ The backend exposes the core API endpoints used by the IDE, including:
 - `GET /api/project/user-blocks`
 - `POST /api/yosys/synth`
 - `POST /api/sim/run`
-
-## Usage workflow
-
-1. Open the app in the browser or desktop shell.
-2. Select a PDK and validate the local PDK root path.
-3. Create or load a project.
-4. Drag blocks to the canvas and connect signals.
-5. Generate Verilog from the design graph.
-6. Run synthesis or simulation.
-7. Review STA/ATPG outputs and export reusable blocks as needed.
-
-## Notes
-
-- The active implementation is in `verilog-ide/`.
-- `prev_iter/` contains earlier design iterations and is kept for historical reference.
-- The project is designed around a modern web frontend with support for desktop and containerized execution.
+- `POST /api/atpg/run`
+- `GET /api/atpg/download/bench`
+- `GET /api/health`
 
 ## License
 

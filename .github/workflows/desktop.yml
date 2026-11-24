@@ -70,7 +70,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Tag must match the app version
         run: test "v$(node -p "require('./verilog-ide/package.json').version")" = "$GITHUB_REF_NAME"
-      - run: gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "VerilogBlocks IDE $GITHUB_REF_NAME"
+      # reuse a release made by hand for this tag (on GitHub's "Draft a new release" page); otherwise create the draft
+      - run: gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "VerilogBlocks IDE $GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
