@@ -21,3 +21,4 @@ release/
 /.cache/
 
 .DS_Store
+/todo

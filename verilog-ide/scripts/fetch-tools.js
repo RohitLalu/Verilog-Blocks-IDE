@@ -189,11 +189,14 @@ function buildAtalanta(target, outBin) {
     sh('git', ['fetch', '-q', '--depth', '1', repo, commit], { cwd: src });   // GitHub's generated tarballs are not byte-stable
     sh('git', ['checkout', '-q', 'FETCH_HEAD'], { cwd: src });
   }
+  // The one source change: time((long*)NULL) does not compile on 64-bit Windows (long is 32-bit, time_t 64-bit).
+  // time(NULL) is the same call everywhere; on macOS/Linux long and time_t are already the same size.
+  const rnd = path.join(src, 'random.cpp');
+  fs.writeFileSync(rnd, fs.readFileSync(rnd, 'latin1').replace('time((long*)NULL)', 'time(NULL)'), 'latin1');
   const win = target.startsWith('win');
   const exe = path.join(outBin, win ? 'atalanta.exe' : 'atalanta');
   // gnu++14: clang rejects the old code's `register` under C++17. Static on Linux/Windows so it needs no runtime libraries.
-  // -fpermissive (Windows): random.cpp calls time((long*)NULL), and long is 32-bit there; the NULL makes it harmless.
-  const flags = ['-O2', '-std=gnu++14', '-w', ...(target.startsWith('linux') ? ['-static'] : []), ...(win ? ['-static', '-DWIN32', '-fpermissive'] : [])];
+  const flags = ['-O2', '-std=gnu++14', '-w', ...(target.startsWith('linux') ? ['-static'] : []), ...(win ? ['-static', '-DWIN32'] : [])];
   sh(win ? 'g++' : 'c++', [...flags, ...sources, '-o', exe, ...(win ? ['-lpsapi'] : [])], { cwd: src });
   return exe;
 }
@@ -207,7 +210,8 @@ function writeNotices(out, withAtalanta) {
     `versions used are at https://github.com/YosysHQ/oss-cad-suite-build/releases/tag/${LOCK.suite.tag}.`,
     'The shared libraries next to them come from the same release; their licences are listed in that release.',
   ];
-  if (withAtalanta) parts.push(`atalanta was built from ${LOCK.atalanta.repo} at commit ${LOCK.atalanta.commit}. Its README restricts it to teaching and research use.`);
+  if (withAtalanta) parts.push(`atalanta was built from ${LOCK.atalanta.repo} at commit ${LOCK.atalanta.commit}, with one change in random.cpp`,
+    '(time((long*)NULL) -> time(NULL), so it compiles on 64-bit Windows). Its README restricts it to teaching and research use.');
   for (const f of fs.existsSync(lic) ? fs.readdirSync(lic).sort() : []) parts.push(`\n===== ${f} =====\n` + fs.readFileSync(path.join(lic, f), 'latin1'));
   fs.writeFileSync(path.join(out, 'THIRD_PARTY_NOTICES.txt'), parts.join('\n') + '\n');
 }
