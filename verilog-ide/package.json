@@ -68,7 +68,8 @@
           ]
         }
       ],
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "artifactName": "VerilogBlocks-IDE-mac-${arch}.${ext}"
     },
     "extraResources": [
       {
@@ -88,7 +89,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "artifactName": "VerilogBlocks-IDE-linux-${arch}.${ext}"
     },
     "win": {
       "target": [
@@ -104,13 +106,17 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "artifactName": "VerilogBlocks-IDE-win-${arch}.${ext}"
     },
     "publish": [
       {
         "provider": "github",
         "releaseType": "draft"
       }
-    ]
+    ],
+    "nsis": {
+      "artifactName": "VerilogBlocks-IDE-Setup-${arch}.${ext}"
+    }
   }
 }

@@ -197,7 +197,8 @@ function buildAtalanta(target, outBin) {
   const exe = path.join(outBin, win ? 'atalanta.exe' : 'atalanta');
   // gnu++14: clang rejects the old code's `register` under C++17. Static on Linux/Windows so it needs no runtime libraries.
   const flags = ['-O2', '-std=gnu++14', '-w', ...(target.startsWith('linux') ? ['-static'] : []), ...(win ? ['-static', '-DWIN32'] : [])];
-  sh(win ? 'g++' : 'c++', [...flags, ...sources, '-o', exe, ...(win ? ['-lpsapi'] : [])], { cwd: src });
+  // Windows: 16 MB stack (default 1 MB; atalanta keeps large arrays on the stack and overflows, 0xC00000FD)
+  sh(win ? 'g++' : 'c++', [...flags, ...sources, '-o', exe, ...(win ? ['-lpsapi', '-Wl,--stack,16777216'] : [])], { cwd: src });
   return exe;
 }
 
