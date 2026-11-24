@@ -3,7 +3,42 @@
 // A net is named after its DRIVER (source instance + output port), so every edge
 // that fans out from one output shares a single Verilog net. Naming per edge
 // (the old scheme) left all but one fan-out branch undriven.
-export const netName = (srcNode, handle) => `${srcNode.data.instanceName}_${handle}`;
+export const netName = (srcNode, handle) => pinSignal(srcNode, handle);
+
+// The Verilog signal for a block's pin: the name the user gave it (data.pinNames), else "<instance>_<pin>".
+// An output's name is also the name of the net it drives; an unconnected pin's name is the module port's name.
+export const pinSignal = (node, pin) => node.data.pinNames?.[pin] || `${node.data.instanceName}_${pin}`;
+
+const KEYWORDS = new Set(('always and assign automatic begin buf bufif0 bufif1 case casex casez cell cmos config deassign default defparam ' +
+  'design disable edge else end endcase endconfig endfunction endgenerate endmodule endprimitive endspecify endtable endtask event for ' +
+  'force forever fork function generate genvar highz0 highz1 if ifnone incdir include initial inout input instance integer join large ' +
+  'liblist library localparam logic macromodule medium module nand negedge nmos nor noshowcancelled not notif0 notif1 or output parameter ' +
+  'pmos posedge primitive pull0 pull1 pulldown pullup pulsestyle_ondetect pulsestyle_onevent rcmos real realtime reg release repeat ' +
+  'rnmos rpmos rtran rtranif0 rtranif1 scalared showcancelled signed small specify specparam strong0 strong1 supply0 supply1 table task ' +
+  'time tran tranif0 tranif1 tri tri0 tri1 triand trior trireg unsigned use uwire vectored wait wand weak0 weak1 while wire wor xnor xor ' +
+  'bit byte int shortint longint string void top top_tb dut').split(' '));
+
+// Why `name` can't be used for pin `pin` (dir 'in'|'out') of node `nodeId`, or null if it can. '' means "back to the default".
+// Two unconnected inputs may share a name on purpose: they become one shared input port. Anything else must be unique.
+export function checkPinName(nodes, edges, nodeId, pin, dir, name) {
+  if (name === '') return null;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return `"${name}" is not a Verilog name: use letters, digits and _, starting with a letter or _.`;
+  if (name.length > 64) return 'Keep names to 64 characters or fewer.';
+  if (KEYWORDS.has(name)) return `"${name}" is a reserved word in Verilog.`;
+  const driven = new Set(edges.map(e => `${e.target}:${e.targetHandle}`));
+  for (const n of nodes) {
+    if (n.data.instanceName === name) return `"${name}" is already the name of block ${n.data.instanceName}.`;
+    for (const p of n.data.ports?.outputs || []) {
+      if ((n.id !== nodeId || p.name !== pin) && pinSignal(n, p.name) === name) return `"${name}" is already used by ${n.data.instanceName}.${p.name}.`;
+    }
+    for (const p of n.data.ports?.inputs || []) {
+      if (n.id === nodeId && p.name === pin) continue;
+      if (driven.has(`${n.id}:${p.name}`) || pinSignal(n, p.name) !== name) continue;
+      if (dir === 'out') return `"${name}" is already used by ${n.data.instanceName}.${p.name}.`;   // an input may share it, an output may not
+    }
+  }
+  return null;
+}
 
 // Deterministic and unique per (source port -> target port) pair. No timestamps or
 // random ids, so saved projects and generated Verilog stay stable between runs.

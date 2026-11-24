@@ -1,3 +1,4 @@
+import{pinSignal}from'../lib/netNaming.js';
 // Per-PDK inline logic (behavioural equivalents for simulation)
 const CELL_LOGIC={
   // sky130
@@ -80,10 +81,22 @@ const CELL_LOGIC={
   gf180_dffs_n:{isFF:true,e:(i,o)=>`always @(negedge ${i.CLK}) ${o.Q}<=${i.D};`},
 };
 
+// Blocks that carry their own Verilog (custom blocks, saved designs placed as blocks) are instantiated like cells; their
+// module definitions go after the top module (pasting them into its body nested one module inside another). A saved design's
+// own "top" is renamed after the block. Definitions are collected by name, so a block used twice, or a design that itself
+// contains blocks, still gives each module once.
+function blockModules(node){
+  let code=node.data.verilogCode;
+  if(node.data.isHierarchical)code=code.replace(/\bmodule\s+top\b/,`module ${node.data.module}`);
+  const defs=new Map();
+  for(const m of code.matchAll(/\bmodule\s+(\w+)[\s\S]*?\bendmodule\b/g))if(!defs.has(m[1]))defs.set(m[1],m[0]);
+  return{name:[...defs.keys()][0]||node.data.module,defs};
+}
+
 function rw(edges){
   const by={},to={};
   edges.forEach(e=>{const n=e.data?.wireName||`w_${e.id}`;by[`${e.target}:${e.targetHandle}`]=n;to[`${e.source}:${e.sourceHandle}`]=n;});
-  return{by,to,inSig:(node,p)=>by[`${node.id}:${p}`]||`${node.data.instanceName}_${p}`,outSig:(node,p)=>to[`${node.id}:${p}`]||`${node.data.instanceName}_${p}`};
+  return{by,to,inSig:(node,p)=>by[`${node.id}:${p}`]||pinSignal(node,p),outSig:(node,p)=>to[`${node.id}:${p}`]||pinSignal(node,p)};
 }
 
 export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
@@ -100,7 +113,7 @@ export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
   edges.forEach(e=>{const src=nodes.find(n=>n.id===e.source);if(!src)return;const nm=e.data?.wireName||`w_${e.id}`;if(declared.has(nm))return;declared.add(nm);const lg=CELL_LOGIC[src.data.id];const sp=src.data.ports?.outputs?.find(p=>p.name===e.sourceHandle);const w=sp?.width||1;(lg?.isFF?regs:wires).push(`    ${lg?.isFF?'reg ':'wire'}${w>1?` [${w-1}:0]`:''} ${e.data?.wireName||`w_${e.id}`};`);});
   const inclSet=new Set();
   nodes.forEach(n=>{if(!CELL_LOGIC[n.data.id]&&!n.data.isCustomInline&&n.data.file)inclSet.add(n.data.file);});
-  const body=[];
+  const body=[],subModules=new Map();
   nodes.forEach(node=>{
     const lg=CELL_LOGIC[node.data.id];
     const ins={},outs={};
@@ -108,7 +121,11 @@ export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
     node.data.ports?.outputs?.forEach(p=>{outs[p.name]=outSig(node,p.name);});
     body.push(`    // ${node.data.label} [${node.data.instanceName}]`);
     if(lg){body.push(`    ${lg.e(ins,outs)}`);}
-    else if(node.data.verilogCode){body.push(...node.data.verilogCode.split('\n').map(l=>`    ${l}`));}
+    else if(node.data.verilogCode){
+      const{name,defs}=blockModules(node);defs.forEach((d,k)=>{if(!subModules.has(k))subModules.set(k,d);});
+      const pp=[...node.data.ports?.inputs?.map(p=>`        .${p.name}(${ins[p.name]})`)||[],...node.data.ports?.outputs?.map(p=>`        .${p.name}(${outs[p.name]})`)||[]];
+      body.push(`    ${name} ${node.data.instanceName} (`,pp.join(',\n'),`    );`);
+    }
     else{
       const pp=[...node.data.ports?.inputs?.map(p=>`        .${p.name}(${ins[p.name]})`)||[],...node.data.ports?.outputs?.map(p=>`        .${p.name}(${outs[p.name]})`)||[]];
       if(pdkCtx?.manifest?.powerPorts){const nets=pdkCtx.manifest.powerNets||{};pdkCtx.manifest.powerPorts.forEach(pp2=>pp.push(`        .${pp2}(${nets[pp2]||"1'b0"})`));}
@@ -125,6 +142,7 @@ export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
     portList||'    // no external ports',');','',
     [...wires,...regs].length?'    // Internal signals\n'+[...wires,...regs].join('\n')+'\n':'',
     '    // ── Logic ────────────────────────────────────────────────────────',...body,'endmodule',
+    ...[...subModules.values()].flatMap(d=>['',d]),
   ].join('\n');
   return{verilog,errors:[]};
 }
@@ -134,8 +152,8 @@ export function generateTestbench(nodes,edges,projectName,tbInputs={},customCode
   const ts=new Date().toISOString().replace('T',' ').slice(0,19);
   const{by,to}=rw(edges);const seen=new Set(),topIn=[],topOut=[];
   nodes.forEach(node=>{
-    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=`${node.data.instanceName}_${p.name}`;if(!seen.has(sig)){seen.add(sig);topIn.push({sig,portName:p.name,width:p.width});}}});
-    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=`${node.data.instanceName}_${p.name}`;if(!seen.has(sig)){seen.add(sig);topOut.push({sig,portName:p.name,width:p.width});}}});
+    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topIn.push({sig,portName:p.name,width:p.width});}}});
+    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topOut.push({sig,portName:p.name,width:p.width});}}});
   });
   const hex=(v,w)=>w>1?`${w}'h${Number(v).toString(16).toUpperCase().padStart(Math.ceil(w/4),'0')}`:`1'b${v}`;
   // Each stimulated input gets its own initial block, so all inputs run at the same time (one shared block ran them one
@@ -170,8 +188,8 @@ export function generateTestbench(nodes,edges,projectName,tbInputs={},customCode
 export function exportAsBlock(nodes,edges,meta){
   const{by,to}=rw(edges);const seen=new Set(),inputs=[],outputs=[];
   nodes.forEach(node=>{
-    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=`${node.data.instanceName}_${p.name}`;if(!seen.has(sig)){seen.add(sig);inputs.push({name:sig,width:p.width});}}});
-    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=`${node.data.instanceName}_${p.name}`;if(!seen.has(sig)){seen.add(sig);outputs.push({name:sig,width:p.width});}}});
+    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);inputs.push({name:sig,width:p.width});}}});
+    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);outputs.push({name:sig,width:p.width});}}});
   });
   const{blockId,label,description,color}=meta;
   return{id:blockId,label:label||blockId,symbol:(label||blockId).slice(0,4).toUpperCase(),module:blockId,category:'hierarchy/user',color:color||'#818cf8',description:description||`Hierarchical block from "${blockId}"`,tutorial:`Instantiates the top module from project "${blockId}".`,isHierarchical:true,ports:{inputs,outputs},sourceProject:blockId};

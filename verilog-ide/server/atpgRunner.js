@@ -63,7 +63,7 @@ async function runAtpg({ projDir, outDir, verilog, timeoutMs = DEFAULT_TIMEOUT_M
   fs.writeFileSync(ysScript, [
     `read_verilog -sv "${topV}"`,
     'hierarchy -top top',
-    'proc; opt',
+    'proc; flatten; hierarchy -top top; opt',   // designs built from blocks: one flat module, sub-modules dropped
     'techmap; opt; clean',
     `write_json "${jsonF}"`,
   ].join('\n'));
