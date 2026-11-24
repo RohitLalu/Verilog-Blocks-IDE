@@ -192,7 +192,8 @@ function buildAtalanta(target, outBin) {
   const win = target.startsWith('win');
   const exe = path.join(outBin, win ? 'atalanta.exe' : 'atalanta');
   // gnu++14: clang rejects the old code's `register` under C++17. Static on Linux/Windows so it needs no runtime libraries.
-  const flags = ['-O2', '-std=gnu++14', '-w', ...(target.startsWith('linux') ? ['-static'] : []), ...(win ? ['-static', '-DWIN32'] : [])];
+  // -fpermissive (Windows): random.cpp calls time((long*)NULL), and long is 32-bit there; the NULL makes it harmless.
+  const flags = ['-O2', '-std=gnu++14', '-w', ...(target.startsWith('linux') ? ['-static'] : []), ...(win ? ['-static', '-DWIN32', '-fpermissive'] : [])];
   sh(win ? 'g++' : 'c++', [...flags, ...sources, '-o', exe, ...(win ? ['-lpsapi'] : [])], { cwd: src });
   return exe;
 }

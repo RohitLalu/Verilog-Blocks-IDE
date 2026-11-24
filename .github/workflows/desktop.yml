@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-14, tools: mac-arm64, app: 'release/mac-arm64/VerilogBlocks IDE.app/Contents/MacOS/VerilogBlocks IDE' }
+          - { os: macos-latest, tools: mac-arm64, app: 'release/mac-arm64/VerilogBlocks IDE.app/Contents/MacOS/VerilogBlocks IDE' }
           - { os: ubuntu-22.04, tools: linux-x64, app: 'release/linux-unpacked/verilog-blocks-ide' }
           - { os: windows-2022, tools: win-x64, app: 'release/win-unpacked/VerilogBlocks IDE.exe' }
     runs-on: ${{ matrix.os }}
@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-14, tools: mac-arm64 }
+          - { os: macos-latest, tools: mac-arm64 }
           - { os: ubuntu-22.04, tools: linux-x64 }
           - { os: windows-2022, tools: win-x64 }
     runs-on: ${{ matrix.os }}
