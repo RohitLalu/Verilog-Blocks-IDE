@@ -1,16 +1,34 @@
 import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import { netName, edgeId } from '../lib/netNaming.js';
+import { netName, edgeId, normalizeEdges, nextInstanceName, dedupeInstanceNames } from '../lib/netNaming.js';
 
 const tryLS=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const setLS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 const MAX_HIST=60;
+// React Flow reports one user deletion as several back-to-back change batches (node + attached
+// edges). Only the first of them may open an undo step.
+let removalPushed=false;
+const pushHistoryOnce=get=>{if(removalPushed)return;removalPushed=true;queueMicrotask(()=>{removalPushed=false;});get()._pushHistory();};
 
 const useStore=create((set,get)=>({
   // Graph
-  nodes:[],edges:[],instanceCounter:{},
-  onNodesChange:(ch)=>set({nodes:applyNodeChanges(ch,get().nodes)}),
-  onEdgesChange:(ch)=>set({edges:applyEdgeChanges(ch,get().edges)}),
+  nodes:[],edges:[],instanceCounter:{},_dragging:false,_nudgeAt:0,
+  onNodesChange:(ch)=>{
+    if(ch.some(c=>c.type==='remove'))pushHistoryOnce(get);
+    // One undo step per drag gesture: snapshot when the drag starts, not on every pointer move
+    const starting=ch.some(c=>c.type==='position'&&c.dragging===true);
+    const ended=ch.some(c=>c.type==='position'&&c.dragging===false);
+    if(starting&&!get()._dragging){get()._pushHistory();set({_dragging:true});}
+    else if(ended&&get()._dragging)set({_dragging:false});
+    // Arrow-key nudges arrive as position changes with dragging:false (a pointer drag ends without a position)
+    else if(!get()._dragging&&ch.some(c=>c.type==='position'&&c.dragging===false&&c.position)){
+      const now=Date.now();if(now-get()._nudgeAt>500)get()._pushHistory();set({_nudgeAt:now});}
+    set({nodes:applyNodeChanges(ch,get().nodes)});
+  },
+  onEdgesChange:(ch)=>{
+    if(ch.some(c=>c.type==='remove'))pushHistoryOnce(get);
+    set({edges:applyEdgeChanges(ch,get().edges)});
+  },
   onConnect:(conn)=>{
     const{edges,nodes,pushNotification}=get();
     const src=nodes.find(n=>n.id===conn.source),tgt=nodes.find(n=>n.id===conn.target);
@@ -33,12 +51,12 @@ const useStore=create((set,get)=>({
   },
   addBlock:(blockDef,position)=>{
     const{nodes,instanceCounter}=get();
-    const count=(instanceCounter[blockDef.id]||0)+1;
-    const instanceName=`${blockDef.module||blockDef.id}_${count}`;
+    const base=blockDef.module||blockDef.id;
+    const{name:instanceName,index}=nextInstanceName(nodes.map(n=>n.data.instanceName),base,instanceCounter[base]||0);
     get()._pushHistory();
     set({nodes:[...nodes,{id:`node_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,
       type:'blockNode',position,data:{...blockDef,instanceName,paramValues:{}}}],
-      instanceCounter:{...instanceCounter,[blockDef.id]:count}});
+      instanceCounter:{...instanceCounter,[base]:index}});
   },
   removeNode:(id)=>{get()._pushHistory();set({nodes:get().nodes.filter(n=>n.id!==id),edges:get().edges.filter(e=>e.source!==id&&e.target!==id)});},
   clearGraph:()=>{get()._pushHistory();set({nodes:[],edges:[],instanceCounter:{},pdkLocked:false});},
@@ -58,13 +76,16 @@ const useStore=create((set,get)=>({
     if(!clipboard||!clipboard.nodes.length)return 0;
     const step=clipboard.pasteCount+1,off=30*step;
     const counter={...instanceCounter},idMap={},stamp=Date.now();
+    const used=nodes.map(n=>n.data.instanceName);
     const pasted=clipboard.nodes.map((old,i)=>{
       const{positionAbsolute,dragging,...rest}=old;
-      const count=(counter[old.data.id]||0)+1;counter[old.data.id]=count;
+      const base=old.data.module||old.data.id;
+      const{name,index}=nextInstanceName(used,base,counter[base]||0);
+      counter[base]=index;used.push(name);
       const id=`node_${stamp}_${i}_${Math.random().toString(36).slice(2,5)}`;
       idMap[old.id]=id;
       return{...rest,id,selected:true,position:{x:old.position.x+off,y:old.position.y+off},
-        data:{...old.data,instanceName:`${old.data.module||old.data.id}_${count}`,paramValues:{...old.data.paramValues}}};
+        data:{...old.data,instanceName:name,paramValues:{...old.data.paramValues}}};
     });
     const byId=new Map(pasted.map(n=>[n.id,n]));
     const pastedEdges=clipboard.edges.map(e=>{
@@ -77,20 +98,40 @@ const useStore=create((set,get)=>({
       instanceCounter:counter,pdkLocked:true,clipboard:{...clipboard,pasteCount:step}});
     return pasted.length;
   },
-  updateNodeParam:(nodeId,paramName,value)=>set({nodes:get().nodes.map(n=>n.id===nodeId?{...n,data:{...n.data,paramValues:{...n.data.paramValues,[paramName]:value}}}:n)}),
-
-  // Undo/Redo
-  _history:[],_histIdx:-1,
-  _pushHistory:()=>{
-    const{nodes,edges,_history,_histIdx}=get();
-    const snap={nodes:JSON.parse(JSON.stringify(nodes)),edges:JSON.parse(JSON.stringify(edges))};
-    const h=[..._history.slice(0,_histIdx+1),snap].slice(-MAX_HIST);
-    set({_history:h,_histIdx:h.length-1});
+  _paramEdit:{key:'',at:0},
+  updateNodeParam:(nodeId,paramName,value)=>{
+    // Typing fires per keystroke: open a new undo step only for a different field or after a pause
+    const key=`${nodeId}:${paramName}`,now=Date.now(),last=get()._paramEdit;
+    if(last.key!==key||now-last.at>1000)get()._pushHistory();
+    set({_paramEdit:{key,at:now},nodes:get().nodes.map(n=>n.id===nodeId?{...n,data:{...n.data,paramValues:{...n.data.paramValues,[paramName]:value}}}:n)});
   },
-  undo:()=>{const{_history,_histIdx}=get();if(_histIdx<=0)return;const s=_history[_histIdx-1];set({nodes:s.nodes,edges:s.edges,_histIdx:_histIdx-1});},
-  redo:()=>{const{_history,_histIdx}=get();if(_histIdx>=_history.length-1)return;const s=_history[_histIdx+1];set({nodes:s.nodes,edges:s.edges,_histIdx:_histIdx+1});},
-  canUndo:()=>get()._histIdx>0,
-  canRedo:()=>get()._histIdx<get()._history.length-1,
+  // Replace the whole graph (open project). Repairs names/nets written by older versions.
+  loadGraph:(graph)=>{
+    get()._pushHistory();
+    const{nodes,renamed}=dedupeInstanceNames(graph.nodes||[]);
+    set({nodes,edges:normalizeEdges(nodes,graph.edges||[]),instanceCounter:{},pdkLocked:nodes.length>0});
+    return{renamed};
+  },
+
+  // Undo/Redo — two stacks of {nodes,edges} snapshots. The state being left is always pushed
+  // onto the opposite stack, so undo can never lose the latest work and redo can get back to it.
+  _past:[],_future:[],
+  _snap:()=>{const{nodes,edges}=get();return{nodes:JSON.parse(JSON.stringify(nodes)),edges:JSON.parse(JSON.stringify(edges))};},
+  _pushHistory:()=>set({_past:[...get()._past,get()._snap()].slice(-MAX_HIST),_future:[]}),
+  undo:()=>{
+    const{_past,_future}=get();if(!_past.length)return;
+    const prev=_past[_past.length-1];
+    set({_future:[..._future,get()._snap()].slice(-MAX_HIST),_past:_past.slice(0,-1),
+      nodes:prev.nodes,edges:prev.edges,pdkLocked:prev.nodes.length>0,_dragging:false});
+  },
+  redo:()=>{
+    const{_past,_future}=get();if(!_future.length)return;
+    const next=_future[_future.length-1];
+    set({_past:[..._past,get()._snap()].slice(-MAX_HIST),_future:_future.slice(0,-1),
+      nodes:next.nodes,edges:next.edges,pdkLocked:next.nodes.length>0,_dragging:false});
+  },
+  canUndo:()=>get()._past.length>0,
+  canRedo:()=>get()._future.length>0,
 
   // PDK
   selectedPDK:tryLS('vbide_pdk',null),pdkContext:null,pdkLocked:false,

@@ -1,4 +1,3 @@
-import{normalizeEdges}from'../lib/netNaming.js';
 import React,{useState,useEffect}from'react';
 import useStore from'../store/graphStore.js';
 
@@ -29,13 +28,8 @@ export default function ProjectBrowser(){
       if(!data||!data.graph){pushNotification(`Could not load "${name}"`,'error');setLoadingProj(null);return;}
 
       // Replace the graph wholesale
-      const store=useStore.getState();
-      store._pushHistory();
-      useStore.setState({
-        nodes:data.graph.nodes||[],
-        edges:normalizeEdges(data.graph.nodes||[],data.graph.edges||[]),
-        instanceCounter:data.graph.instanceCounter||{},
-      });
+      const{renamed}=useStore.getState().loadGraph(data.graph);
+      if(renamed.length)pushNotification(`Renamed ${renamed.length} duplicate instance${renamed.length>1?'s':''} from an older save (${renamed.map(r=>`${r.from}→${r.to}`).join(', ')})`,'warn');
       setProjectName(name);
       setStaSlack({});
 
