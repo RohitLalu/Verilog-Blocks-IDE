@@ -15,7 +15,7 @@
     "react-dom": "18.3.1",
     "reactflow": "11.11.4",
     "zustand": "4.5.5",
-    "express": "4.21.1",
+    "express": "4.22.3",
     "cors": "2.8.5"
   },
   "devDependencies": {
