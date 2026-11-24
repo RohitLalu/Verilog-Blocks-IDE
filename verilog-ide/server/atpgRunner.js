@@ -43,17 +43,17 @@ const NOT_FOUND = {
 };
 
 async function runAtpg({ projDir, outDir, verilog, timeoutMs = DEFAULT_TIMEOUT_MS }) {
-  fs.mkdirSync(projDir, { recursive: true });
-  fs.mkdirSync(outDir, { recursive: true });
-
   const topV = path.join(projDir, 'top.v');
   const jsonF = path.join(outDir, 'top_atpg.json');
   const benchF = path.join(outDir, 'top.bench');
   const testF = path.join(outDir, 'top.test');
   const ysScript = path.join(outDir, 'atpg_synth.ys');
+  // checked before anything is created on disk
   if (![topV, jsonF].every(p => SAFE_PATH.test(p))) {
     return { ok: false, stage: 'yosys', output: 'Refusing to run: a file path contains a quote or newline character.' };
   }
+  fs.mkdirSync(projDir, { recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
 
   fs.writeFileSync(topV, verilog || '');
   // never leave a previous run's results where this run's failure could be mistaken for them
