@@ -1,0 +1,2 @@
+# Test fixtures are compared byte for byte: never convert their line endings (Windows checkouts would get CRLF)
+verilog-ide/test/fixtures/** -text

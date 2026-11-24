@@ -42,19 +42,26 @@ test('ld.so --list output is parsed into resolved paths', () => {
 });
 
 test('iverilog gets a space-free alias of a tools folder whose path has a space (and none otherwise)', () => {
-  const { ivlBaseAlias } = require('../server/toolEnv.js');
+  const { ivlBaseAlias, removeAlias } = require('../server/toolEnv.js');
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'vbide-alias-'));
   const tools = path.join(tmp, 'Verilog Blocks.app', 'tools');
   fs.mkdirSync(path.join(tools, 'lib', 'ivl'), { recursive: true });
   fs.writeFileSync(path.join(tools, 'lib', 'ivl', 'marker'), 'x');
   assert.equal(ivlBaseAlias(path.join(tmp, 'nospace')), null);
-  assert.equal(ivlBaseAlias(tools, { platform: 'win32' }), null, 'Windows iverilog uses 8.3 short paths itself');
-  if (process.platform === 'win32') return;
   const alias = ivlBaseAlias(tools);
   assert.doesNotMatch(alias, /\s/);
   assert.equal(fs.readFileSync(path.join(alias, 'lib', 'ivl', 'marker'), 'utf8'), 'x');
-  assert.equal(fs.statSync(path.dirname(alias)).mode & 0o077, 0, 'alias folder is private');
-  fs.rmSync(path.dirname(alias), { recursive: true, force: true }); fs.rmSync(tmp, { recursive: true, force: true });
+  if (process.platform !== 'win32') assert.equal(fs.statSync(path.dirname(alias)).mode & 0o077, 0, 'alias folder is private');
+  removeAlias(alias);
+  assert.equal(fs.existsSync(path.dirname(alias)), false, 'alias folder removed');
+  assert.equal(fs.readFileSync(path.join(tools, 'lib', 'ivl', 'marker'), 'utf8'), 'x', 'removing the alias leaves the tools alone');
+  // Windows: a temp folder with a space (user name with a space) falls back to %ProgramData%
+  const pd = fs.mkdtempSync(path.join(require('os').tmpdir(), 'vbide-pd-'));
+  const a2 = ivlBaseAlias(tools, { platform: 'win32', tmp: path.join(tmp, 'John Smith'), programData: pd });
+  assert.ok(a2.startsWith(pd), a2);
+  removeAlias(a2);
+  assert.equal(ivlBaseAlias(tools, { platform: 'linux', tmp: path.join(tmp, 'a b') }), null, 'no space-free place: no alias');
+  fs.rmSync(tmp, { recursive: true, force: true }); fs.rmSync(pd, { recursive: true, force: true });
 });
 
 test('PE import tables are read without running the file (minimal PE32+ with one import)', () => {

@@ -41,8 +41,12 @@ jobs:
       - name: Put only the bundled tools on PATH
         run: |
           bin="$PWD/resources/tools/${{ matrix.tools }}/bin"
-          if [ "$RUNNER_OS" = Windows ]; then cygpath -w "${bin%/bin}/lib" >> "$GITHUB_PATH"; bin=$(cygpath -w "$bin"); fi   # Windows finds the DLLs through PATH
+          if [ "$RUNNER_OS" = Windows ]; then bin=$(cygpath -w "$bin"); fi
           echo "$bin" >> "$GITHUB_PATH"
+      - name: Bundled tool versions
+        run: |
+          set +e
+          for t in "yosys -V" "iverilog -V" "vvp -V"; do echo "== $t"; $t 2>&1 | head -3; echo "exit=${PIPESTATUS[0]}"; done
       - run: npm test
       - run: npm run pack
       - name: Smoke-test the packaged app

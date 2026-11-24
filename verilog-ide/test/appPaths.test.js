@@ -10,7 +10,7 @@ const base = { appDir: '/Apps/VBiDE/Contents/Resources/app.asar', userData: '/Us
 test('a packaged app writes under the per-user data folder, never inside its own bundle', () => {
   const d = dataDirs({ ...base, isPackaged: true, env: {} });
   assert.equal(d.legacy, false); assert.equal(d.root, base.userData);
-  for (const k of ['projects', 'synthesis', 'atpg', 'userBlocks', 'prefs']) assert.ok(d[k].startsWith(base.userData), k + ' -> ' + d[k]);
+  for (const k of ['projects', 'synthesis', 'atpg', 'userBlocks', 'prefs']) assert.ok(d[k].startsWith(path.join(base.userData)), k + ' -> ' + d[k]);
   assert.doesNotThrow(() => assertWritableLocations(d));
 });
 
@@ -38,7 +38,7 @@ test('a data location inside an .asar archive is refused up front', () => {
 
 test('tool PATH: bundled tools first, the user\'s PATH next, Homebrew prefixes appended', () => {
   const p = toolPath({ platform: 'darwin', envPath: '/usr/bin:/bin:/usr/sbin:/sbin', resourcesPath: '/Apps/V.app/Contents/Resources', packaged: true });
-  assert.deepEqual(p.split(':'), ['/Apps/V.app/Contents/Resources/tools/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin']);
+  assert.deepEqual(p.split(':'), [path.join('/Apps/V.app/Contents/Resources', 'tools', 'bin'), '/usr/bin', '/bin', '/usr/sbin', '/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin']);
 });
 
 test('tool PATH: unpackaged runs add no bundled directory; existing entries keep their order and are not duplicated', () => {
@@ -52,8 +52,7 @@ test('tool PATH on Windows uses ; and adds nothing', () => {
   assert.equal(toolPath({ platform: 'win32', envPath: 'C:\\a;C:\\b' }), 'C:\\a;C:\\b');
 });
 
-test('tool PATH in a packaged Windows app has the bundled bin and lib (the DLLs are found through PATH)', () => {
+test('tool PATH in a packaged Windows app has the bundled bin first (its DLLs sit next to the programs)', () => {
   const r = 'C:\\V\\resources';
-  assert.deepEqual(toolPath({ platform: 'win32', envPath: 'C:\\a', resourcesPath: r, packaged: true }).split(';'),
-    [path.join(r, 'tools', 'bin'), path.join(r, 'tools', 'lib'), 'C:\\a']);
+  assert.deepEqual(toolPath({ platform: 'win32', envPath: 'C:\\a', resourcesPath: r, packaged: true }).split(';'), [path.join(r, 'tools', 'bin'), 'C:\\a']);
 });

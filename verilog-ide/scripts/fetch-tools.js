@@ -56,7 +56,12 @@ const RULES = {
       /^lib\/ivl\//, /^share\/yosys\/[^/]+$/, /^share\/yosys\/choices\//,
       /^license\/LICENSE\.(yosys|iverilog)$/,
     ],
-    libs: /^(bin|lib)\/[^/]+\.dll$/i,       // lib/ goes on PATH as well (server/toolEnv.js), as the suite's environment.bat does
+    libs: /^(bin|lib)\/[^/]+\.dll$/i,
+    // Windows looks next to the program before PATH, so each DLL goes beside the programs that load it (bin/ for the tools
+    // and the .vpi plug-ins vvp loads, lib/ivl/ for ivl.exe and its .tgt plug-ins). Then a different MinGW runtime on PATH
+    // (Git Bash, MSYS2, Strawberry Perl) can't be picked up instead: that made yosys fail to start in CI.
+    // folder -> the files whose imports must resolve there (vvp in bin/ loads the .vpi plug-ins; ivl.exe loads the .tgt)
+    dllDirs: { bin: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.vpi$/i, 'lib/ivl': /^lib\/ivl\/[^/]+\.(exe|tgt|vpi)$/i },
     binaries: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.(exe|vpi|tgt)$/i,
   },
 };
@@ -221,7 +226,7 @@ function writeNotices(out, withAtalanta) {
 function verify(target, out) {
   const bin = path.join(out, 'bin'), win = target.startsWith('win');
   const sys = win ? [path.join(process.env.SystemRoot || 'C:\\Windows', 'System32')] : ['/usr/bin', '/bin'];
-  const env = { PATH: [bin, ...(win ? [path.join(out, 'lib')] : []), ...sys].join(path.delimiter), ...(win ? { SystemRoot: process.env.SystemRoot } : {}), HOME: os.tmpdir() };
+  const env = { PATH: [bin, ...sys].join(path.delimiter), ...(win ? { SystemRoot: process.env.SystemRoot } : {}), HOME: os.tmpdir() };
   const tool = t => path.join(bin, win ? `${t}.exe` : t);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vbide-verify-'));
   try {
@@ -265,16 +270,20 @@ async function main(argv) {
 
     const kept = picked.map(rel).filter(r => !rules.libs.test(r));
     const libs = libraryClosure(target, suite, rules, kept);
-    const keep = [...kept, ...libs];
+    // [source in the suite, destination in the bundle]
+    const copies = [...kept.map(r => [r, r]), ...(rules.dllDirs
+      ? Object.entries(rules.dllDirs).flatMap(([dir, binaries]) =>
+          [...libraryClosure(target, suite, { ...rules, binaries }, kept)].map(r => [r, `${dir}/${path.basename(r)}`]))
+      : [...libs].map(r => [r, r]))];
     fs.rmSync(out, { recursive: true, force: true });
-    for (const r of keep) copyInto(path.join(suite, r), path.join(out, r));
+    for (const [from, to] of copies) copyInto(path.join(suite, from), path.join(out, to));
     if (withAtalanta) { if (!onHost) die('atalanta is compiled on the target OS'); buildAtalanta(target, path.join(out, 'bin')); }
     writeNotices(out, withAtalanta);
     if (!onHost) console.log(`not verified: ${target} can only be run on ${target}`);
     else if (!argv.includes('--no-verify')) verify(target, out);
 
-    const size = keep.reduce((s, r) => s + fs.lstatSync(path.join(out, r)).size, 0);
-    console.log(`${target}: ${keep.length} files (${libs.size} shared libraries), ${(size / 1e6).toFixed(1)} MB${withAtalanta ? ' + atalanta' : ''} -> ${path.relative(ROOT, out)}`);
+    const size = copies.reduce((s, [, r]) => s + fs.lstatSync(path.join(out, r)).size, 0);
+    console.log(`${target}: ${copies.length} files (${libs.size} shared libraries), ${(size / 1e6).toFixed(1)} MB${withAtalanta ? ' + atalanta' : ''} -> ${path.relative(ROOT, out)}`);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

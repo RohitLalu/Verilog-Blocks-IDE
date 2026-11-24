@@ -32,10 +32,12 @@ async function runSynthesis({ projDir, outDir, verilog, pdkId, pdkRoot, timeoutM
   const r = resolveLiberty(pdkId, pdkRoot);
   if (!r.lib) return r;                       // refusal / unsupported: Yosys is never started
 
-  fs.mkdirSync(projDir, { recursive: true });
-  fs.mkdirSync(outDir, { recursive: true });
   const vPath = path.join(projDir, 'top.v');
   const outV = path.join(outDir, 'top_synth.v'), outJ = path.join(outDir, 'top_synth.json'), ysP = path.join(outDir, 'synth.ys');
+  const unsafe = { ok: false, output: 'Refusing to run: a file path contains a quote or newline character.' };
+  if (![vPath, outV, outJ].every(p => SAFE_PATH.test(p))) return unsafe;   // before anything is created on disk
+  fs.mkdirSync(projDir, { recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(vPath, verilog || '');
   fs.rmSync(outV, { force: true }); fs.rmSync(outJ, { force: true });   // never leave a previous netlist behind
 
@@ -43,8 +45,7 @@ async function runSynthesis({ projDir, outDir, verilog, pdkId, pdkRoot, timeoutM
   try { lib = prepareLiberty({ src: r.lib, pdkId, dontUse: r.pdk.dontUse, outDir: path.join(outDir, 'lib') }); }
   catch (e) { return { ok: false, output: `Could not prepare the Liberty library:\n${e.message}` }; }
 
-  const paths = [vPath, outV, outJ, lib.path];
-  if (!paths.every(p => SAFE_PATH.test(p))) return { ok: false, output: 'Refusing to run: a file path contains a quote or newline character.' };
+  if (!SAFE_PATH.test(lib.path)) return unsafe;
 
   fs.writeFileSync(ysP, [
     `read_verilog -sv "${vPath}"`,

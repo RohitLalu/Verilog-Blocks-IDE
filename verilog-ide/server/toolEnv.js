@@ -17,21 +17,30 @@ const EXTRA = {
 
 function toolPath({ platform = process.platform, envPath = '', resourcesPath, packaged = false } = {}) {
   const delimiter = platform === 'win32' ? ';' : ':';
-  // Windows has no rpath: the suite's DLLs live in lib/ and are found through PATH (as its environment.bat does)
-  const bundled = packaged && resourcesPath ? ['bin', ...(platform === 'win32' ? ['lib'] : [])].map(d => path.join(resourcesPath, 'tools', d)) : [];
+  const bundled = packaged && resourcesPath ? [path.join(resourcesPath, 'tools', 'bin')] : [];
   const existing = String(envPath).split(delimiter).filter(Boolean);
   return [...new Set([...bundled, ...existing, ...(EXTRA[platform] || [])])].join(delimiter);
 }
 
-// iverilog runs ivlpp/ivl through `sh -c` with its base folder unquoted (driver/main.c), so a tools folder whose path
-// contains a space ("/Applications/VerilogBlocks IDE.app/...") breaks every compile. On Windows iverilog switches to the
-// 8.3 short path itself. Elsewhere: a symlink without spaces in a fresh private (0700) temp folder, passed as `iverilog -B`.
+// iverilog runs ivlpp/ivl through a shell (`sh -c`, or cmd.exe on Windows) with its base folder unquoted (driver/main.c), so
+// a tools folder whose path contains a space ("/Applications/VerilogBlocks IDE.app/...", "%LOCALAPPDATA%\Programs\
+// VerilogBlocks IDE") breaks every compile. Windows iverilog tries 8.3 short names, but those can be switched off (they are
+// on GitHub's runners). So: an alias without spaces in a fresh private temp folder, passed as `iverilog -B`. A symlink on
+// macOS/Linux, a directory junction on Windows (no admin rights needed); on Windows %ProgramData% is the fallback when the
+// temp folder itself has a space (a user name with a space).
 // Returns the alias of toolsDir (pass <alias>/lib/ivl to -B), or null when none is needed or possible.
-function ivlBaseAlias(toolsDir, { platform = process.platform, tmp = os.tmpdir() } = {}) {
-  if (platform === 'win32' || !/\s/.test(toolsDir) || /\s/.test(tmp)) return null;
-  const link = path.join(fs.mkdtempSync(path.join(tmp, 'vbide-')), 'tools');
-  fs.symlinkSync(toolsDir, link);
+function ivlBaseAlias(toolsDir, { platform = process.platform, tmp = os.tmpdir(), programData = process.env.ProgramData } = {}) {
+  if (!/\s/.test(toolsDir)) return null;
+  const parent = [tmp, ...(platform === 'win32' ? [programData] : [])].find(d => d && !/\s/.test(d));
+  if (!parent) return null;
+  const link = path.join(fs.mkdtempSync(path.join(parent, 'vbide-')), 'tools');
+  fs.symlinkSync(toolsDir, link, 'junction');   // the type is used only on Windows
   return link;
 }
 
-module.exports = { toolPath, ivlBaseAlias };
+// Remove the alias (the link itself, never what it points to), then its folder
+function removeAlias(link) {
+  try { fs.unlinkSync(link); fs.rmdirSync(path.dirname(link)); } catch { /* best effort: it lives in a temp folder */ }
+}
+
+module.exports = { toolPath, ivlBaseAlias, removeAlias };
