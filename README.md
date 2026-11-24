@@ -110,8 +110,89 @@ http://localhost:3000
 ### Run the desktop app
 
 ```bash
-npm run electron
+npm run start          # development: Vite dev server + Electron (hot reload)
+npm run electron:dist  # builds the UI, then runs Electron on the built files
+npm run smoke          # headless self-check: page renders, IPC works, saves round-trip, unsafe input refused
 ```
+
+The desktop app uses the same Yosys / iverilog / atalanta runners as the Docker server.
+A **packaged** app brings its own Yosys and Icarus Verilog (see *Bundled tools* below) and uses them first.
+During development (`npm run start`) the tools come from your `PATH`; on macOS the usual Homebrew locations
+(`/opt/homebrew/bin`, `/usr/local/bin`) are added automatically, because apps started from Finder get a minimal `PATH`.
+
+**Where your data lives**
+
+| Build | Projects, outputs, preferences |
+|-------|--------------------------------|
+| Packaged app | The per-user data folder (macOS `~/Library/Application Support/VerilogBlocks IDE`, Linux `~/.config/VerilogBlocks IDE`, Windows `%APPDATA%\VerilogBlocks IDE`) |
+| `npm run start` / `electron:dist` | Inside the source tree (`projects/`, `synthesis/`, `atpg/`), so existing local projects stay visible |
+| Anything | Set `VBIDE_DATA_DIR=/some/folder` to override both |
+
+### Package the desktop app
+
+```bash
+npm run fetch-tools   # once per machine: bundle Yosys + Icarus Verilog for this OS into resources/tools/<os>-<arch>/
+npm run pack          # unpacked app in release/ (fast; what CI tests)
+npm run dist          # installers for this OS: .dmg + .zip (macOS arm64), .AppImage (Linux x64), NSIS .exe + .zip (Windows x64)
+```
+
+Each installer is built on its own OS (electron-builder and the tool bundling both need it).
+`.github/workflows/desktop.yml` does this for macOS arm64, Linux x64 and Windows x64 on every push.
+
+Run the packaged binary with `--smoke-test` before releasing (on a headless Linux box: `xvfb-run -a <binary> --smoke-test`).
+It checks that the window renders from `file://`, that the preload bridge works, and that data goes to the writable data folder.
+When tools are bundled, it also checks that yosys / iverilog / vvp resolve **inside** the app, that a simulation through IPC
+returns a waveform, and that ATPG and a Yosys + ABC run succeed.
+
+#### Publishing a release
+
+Releases go to the repository's GitHub **Releases** page as a draft that you review before anyone sees it.
+
+1. Set `"version"` in `verilog-ide/package.json` (for example `2.1.0`) and commit it.
+2. Tag that commit and push the tag:
+
+   ```bash
+   git tag v2.1.0
+   git push origin v2.1.0
+   ```
+
+3. `.github/workflows/desktop.yml` first runs the tests and the packaged-app smoke test on macOS, Linux and Windows.
+   Only if all three pass does it create a draft release and attach the installers: `.dmg` + `.zip` (macOS arm64),
+   `.AppImage` (Linux x64), and the NSIS `.exe` + `.zip` (Windows x64).
+4. On GitHub, open **Releases**, check the draft and its files, then click **Publish release**.
+
+The tag must match the version (`v` + `version`), or the release job stops.
+Public installers never include atalanta (see below).
+
+Until the apps are code-signed, users see a warning the first time they open them:
+
+* **macOS** may call the app "damaged". Remove the download quarantine once with
+  `xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"`.
+* **Windows** SmartScreen says "Windows protected your PC": click *More info*, then *Run anyway*.
+* **Linux**: `chmod +x VerilogBlocks*.AppImage`, then run it.
+
+#### Bundled tools
+
+`npm run fetch-tools` (`scripts/fetch-tools.js`) downloads the OSS CAD Suite release pinned in `tools/tools.lock.json`
+(size and SHA-256 checked) and keeps only what the app runs: Yosys, yosys-abc, iverilog, vvp, their data files, their
+licences, and the shared libraries they actually load. On Linux it asks the suite's own loader; on macOS it walks
+`otool -L`; on Windows it reads the DLL import tables. It then runs the result with a scrubbed environment (compile and
+simulate, synthesise through ABC). Sizes: about 60 MB on macOS and about 210 MB on Windows (MinGW builds are larger).
+The archive is cached in `.cache/tools/`, and neither folder is committed.
+
+* `--with-atalanta` (or `VBIDE_BUNDLE_ATALANTA=1`) also compiles atalanta from the pinned commit. **Off by default**:
+  atalanta's README allows teaching and research use only, and no commercial product without permission from its
+  author, so shipping it in public installers needs that decision first. Without it, ATPG in the desktop app needs
+  `atalanta` on your `PATH`.
+* `THIRD_PARTY_NOTICES.txt` (generated next to the tools) has the licences and source pointers.
+  Yosys is ISC. Icarus Verilog is GPL-2.0, run as a separate program. Have the redistribution terms reviewed before
+  publishing installers.
+* iverilog cannot handle a space in its own install path (it builds shell command lines unquoted). Installed apps
+  usually have one (`/Applications/VerilogBlocks IDE.app`). On macOS and Linux the app passes iverilog a space-free
+  alias (a symlink in a private temp folder). On Windows iverilog uses the 8.3 short path itself.
+
+Not done yet: code signing and notarization (macOS, Windows), auto-update, an app icon, and bundled fonts. The UI loads
+two Google Fonts and falls back to system fonts when offline.
 
 ### Build for production
 

@@ -39,7 +39,8 @@ async function runSimulation({ simDir, verilog, testbench, timeoutMs = DEFAULT_T
   fs.readdirSync(simDir).filter(f => f.toLowerCase().endsWith('.vcd'))
     .forEach(f => fs.rmSync(path.join(simDir, f), { force: true }));
 
-  const comp = await run('iverilog', ['-g2012', '-o', 'sim.out', 'top_tb.v', 'top.v'], { cwd: simDir, timeoutMs });
+  const base = process.env.VBIDE_IVL_BASE ? ['-B' + process.env.VBIDE_IVL_BASE] : [];   // set by the desktop app: see toolEnv.ivlBaseAlias
+  const comp = await run('iverilog', [...base, '-g2012', '-o', 'sim.out', 'top_tb.v', 'top.v'], { cwd: simDir, timeoutMs });
   if (comp.error) return { ok: false, output: comp.error.code === 'ENOENT' ? NOT_FOUND('iverilog') : String(comp.error), vcd: null };
   if (comp.timedOut) return { ok: false, output: `Compile timed out after ${timeoutMs / 1000}s.`, vcd: null };
   if (comp.code !== 0) return { ok: false, output: 'Compile error:\n' + comp.out, vcd: null };

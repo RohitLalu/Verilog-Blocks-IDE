@@ -2,9 +2,10 @@
 const express  = require('express');
 const path     = require('path');
 const fs       = require('fs');
-const { spawn, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const { runSimulation } = require('./simRunner.js');
 const { runSynthesis } = require('./synthRunner.js');
+const { runAtpg } = require('./atpgRunner.js');
 const { findLiberty, findFile } = require('./pdkFiles.js');
 const { safeId, projectDir, safeName, resolveInside, insideAnyRoot, sanitizePrefs } = require('./pathSafe.js');
 const { guards, resolveHost, isLoopbackHost } = require('./security.js');
@@ -173,113 +174,16 @@ app.post('/api/sim/run', async (req, res) => {
 });
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
-// Flow: Verilog → Yosys (techmap + write_json) → Python converter → atalanta
-// Note: write_bench was removed from Yosys ≥0.26. We use write_json + a
-// bundled Python script (yosys_json_to_bench.py) to produce valid ISCAS89.
-app.post('/api/atpg/run', (req, res) => {
-  const { projectName, verilog } = req.body;
-  const projDir  = projectDir(DIRS.projects, projectName || 'tmp_atpg');   // a bad name throws -> error handler below
-  fs.mkdirSync(projDir, { recursive: true });
-  fs.mkdirSync(DIRS.atpg, { recursive: true });
-
-  const topV      = path.join(projDir, 'top.v');
-  const jsonF     = path.join(DIRS.atpg, 'top_atpg.json');
-  const benchF    = path.join(DIRS.atpg, 'top.bench');
-  const ysScript  = path.join(DIRS.atpg, 'atpg_synth.ys');
-  const converter = path.join(__dirname, 'yosys_json_to_bench.py');
-
-  fs.writeFileSync(topV, verilog || '');
-
-  // Yosys: synthesise to generic internal cells ($_AND_, $_OR_, $_NOT_, etc.)
-  // write_json is the stable export; converter handles ISCAS89 translation
-  const ysContent = [
-    `read_verilog -sv "${topV}"`,
-    'hierarchy -top top',
-    'proc; opt',
-    'techmap; opt; clean',
-    `write_json "${jsonF}"`,
-  ].join('\n');
-  fs.writeFileSync(ysScript, ysContent);
-
-  let ysOut = '';
-  const ys = spawn('yosys', ['-s', ysScript]);
-  ys.stdout.on('data', d => { ysOut += d; });
-  ys.stderr.on('data', d => { ysOut += d; });
-  ys.on('error', () => res.json({ ok:false, stage:'yosys', output:'ERROR: yosys not found.' }));
-  ys.on('close', ysCode => {
-    if (ysCode !== 0 || !exists(jsonF)) {
-      return res.json({ ok:false, stage:'yosys',
-        output: 'Yosys synthesis failed:\n\n' + ysOut +
-          '\n\nTip: run ⚛ Yosys synthesis first to check the design is valid.' });
-    }
-
-    // Convert JSON → ISCAS89 bench via Python script
-    const conv = spawn('python3', [converter, jsonF, benchF]);
-    let convErr = '';
-    conv.stderr.on('data', d => { convErr += d; });
-    conv.on('error', () => res.json({ ok:false, stage:'converter',
-      output: 'ERROR: python3 not found in container.' }));
-    conv.on('close', convCode => {
-      if (convCode !== 0 || !exists(benchF)) {
-        return res.json({ ok:false, stage:'converter',
-          output: 'JSON→bench conversion failed:\n' + convErr });
-      }
-
-      // atalanta: ATPG on the bench file
-      let atpgOut = '';
-      const at = spawn('atalanta', [benchF], { cwd: path.dirname(benchF) });   // it writes <name>.test into its cwd
-      at.stdout.on('data', d => { atpgOut += d; });
-      at.stderr.on('data', d => { atpgOut += d; });
-      at.on('error', () => res.json({ ok:false, stage:'atalanta',
-        output: [
-          'ERROR: atalanta not found.',
-          '',
-          'Rebuild the Docker image:',
-          '  docker build -t verilogblocks .',
-          '',
-          'Verify inside container:',
-          '  docker exec -it verilogblocks which atalanta',
-        ].join('\n') }));
-      at.on('close', () => {
-        res.json({
-          ok: true, stage: 'done', output: atpgOut,
-          bench: fs.readFileSync(benchF, 'utf8'),
-          ...parseAtpgOutput(atpgOut),
-        });
-      });
-    });
-  });
+// Flow: Verilog → Yosys (techmap + write_json) → bench converter (JS) → atalanta. See atpgRunner.js.
+app.post('/api/atpg/run', async (req, res) => {
+  try {
+    const { projectName, verilog } = req.body || {};
+    res.json(await runAtpg({
+      projDir: projectDir(DIRS.projects, projectName || 'tmp_atpg'),   // a bad name throws -> 400 below
+      outDir: DIRS.atpg, verilog,
+    }));
+  } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message, output: e.message }); }
 });
-
-// Parse real atalanta 2.0 output format (verified against actual binary output)
-function parseAtpgOutput(raw) {
-  const m = (pattern) => { const r = raw.match(pattern); return r ? r[1] : null; };
-
-  const coverageStr = m(/Fault coverage\s*:\s*([\d.]+)\s*%/i);
-  const totalStr    = m(/Number of collapsed faults\s*:\s*(\d+)/i);
-  const vectorsStr  = m(/Number of test patterns after compaction\s*:\s*(\d+)/i);
-  const redundantN  = parseInt(m(/Number of identified redundant faults\s*:\s*(\d+)/i) || '0');
-  const abortedN    = parseInt(m(/Number of aborted faults\s*:\s*(\d+)/i) || '0');
-
-  const coverage = coverageStr ? parseFloat(coverageStr) : null;
-  const total    = totalStr    ? parseInt(totalStr)       : null;
-  const vectors  = vectorsStr  ? parseInt(vectorsStr)     : 0;
-
-  // Detected = total collapsed × coverage/100 (atalanta doesn't list individually)
-  const detected = (coverage !== null && total !== null)
-    ? Math.round(total * coverage / 100) : null;
-
-  return {
-    coverage, detected, total, vectors,
-    faults: {
-      detected:   [],    // atalanta 2.0 does not output per-fault DT/UN lines
-      undetected: [],    // aborted faults ≈ undetected count (in summary only)
-      redundant:  [],
-      abortedCount:   abortedN,
-      redundantCount: redundantN,
-    },
-  };
-}
 
 // Serve generated bench file for download
 app.get('/api/atpg/download/bench', (req, res) => {

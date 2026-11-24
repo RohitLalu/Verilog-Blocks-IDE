@@ -17,6 +17,7 @@ test('generated and local-only files are ignored', opts, () => {
     'projects/a/graph.json', 'synthesis/output/top_synth.v', 'atpg/top.bench', 'pdk/user-blocks/a.json', '.vbide-prefs.json',
     // paths outside verilog-ide/ are covered by the repo-root .gitignore alone
     '../tool/node_modules/x.js', '../tool/dist/index.html', '../tool/Electron.app/Contents/MacOS/Electron',
+    'resources/tools/mac-arm64/bin/yosys', '.cache/tools/suite.tgz',
     'docker-projects/p/graph.json', 'docker-synthesis/synth.ys', 'docker-userblocks/a.json', '.DS_Store', 'src/.DS_Store', 'npm-debug.log',
   ]) assert.ok(ignored(p), `${p} should be ignored`);
 });
@@ -25,5 +26,6 @@ test('source, config and fixtures are NOT ignored', opts, () => {
   for (const p of [
     'src/store/graphStore.js', 'server/server.js', 'electron-main.js', 'package.json', 'package-lock.json', 'Dockerfile', 'docker-compose.yml',
     '.dockerignore', 'pdk/pdk-registry.json', 'pdk/sky130/cells-manifest.json', 'test/fixtures/sky130_mini.lib', 'public/index.html', 'src/projects.js',
+    'tools/tools.lock.json', 'scripts/fetch-tools.js',
   ]) assert.ok(!ignored(p), `${p} must not be ignored`);
 });

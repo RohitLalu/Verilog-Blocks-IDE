@@ -1,0 +1,106 @@
+# Builds the desktop app on each OS it ships for, with the EDA tools bundled, and proves it works there:
+# the test suite runs against the bundled tools only, then the packaged app runs its --smoke-test
+# (renders, IPC, a real simulation and Yosys run from inside the bundle).
+name: desktop
+
+on:
+  push:
+    branches: [main, 'v1-*']
+    tags: ['v*']          # a version tag also publishes a draft GitHub Release (jobs below)
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, tools: mac-arm64, app: 'release/mac-arm64/VerilogBlocks IDE.app/Contents/MacOS/VerilogBlocks IDE' }
+          - { os: ubuntu-22.04, tools: linux-x64, app: 'release/linux-unpacked/verilog-blocks-ide' }
+          - { os: windows-2022, tools: win-x64, app: 'release/win-unpacked/VerilogBlocks IDE.exe' }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: verilog-ide
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verilog-ide/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: verilog-ide/.cache
+          key: tools-${{ matrix.tools }}-${{ hashFiles('verilog-ide/tools/tools.lock.json') }}
+      - run: npm ci
+      # atalanta is built here only so the ATPG tests run; nothing from this job is published (see README: atalanta licence)
+      - run: node scripts/fetch-tools.js --with-atalanta
+      - name: Put only the bundled tools on PATH
+        run: |
+          bin="$PWD/resources/tools/${{ matrix.tools }}/bin"
+          if [ "$RUNNER_OS" = Windows ]; then cygpath -w "${bin%/bin}/lib" >> "$GITHUB_PATH"; bin=$(cygpath -w "$bin"); fi   # Windows finds the DLLs through PATH
+          echo "$bin" >> "$GITHUB_PATH"
+      - run: npm test
+      - run: npm run pack
+      - name: Smoke-test the packaged app
+        run: |
+          # Installed apps live under paths with spaces (iverilog breaks on those unless handled): run from one.
+          # The macOS app path already has one ("VerilogBlocks IDE.app").
+          app="${{ matrix.app }}"
+          if [ "$RUNNER_OS" != macOS ]; then d="${app%/*}"; cp -r "$d" "release/with space"; app="release/with space/${app##*/}"; fi
+          if [ "$RUNNER_OS" = Linux ]; then run="xvfb-run -a"; else run=""; fi
+          $run "$app" --smoke-test   # exits non-zero unless every check passed
+
+  # ── Release: only for a v* tag, and only after every platform above passed ─────────────────────────
+  # One job creates the draft first, so the three uploads below don't race to create duplicate releases.
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag must match the app version
+        run: test "v$(node -p "require('./verilog-ide/package.json').version")" = "$GITHUB_REF_NAME"
+      - run: gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "VerilogBlocks IDE $GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, tools: mac-arm64 }
+          - { os: ubuntu-22.04, tools: linux-x64 }
+          - { os: windows-2022, tools: win-x64 }
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: verilog-ide
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verilog-ide/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: verilog-ide/.cache
+          key: tools-${{ matrix.tools }}-${{ hashFiles('verilog-ide/tools/tools.lock.json') }}
+      - run: npm ci
+      - run: node scripts/fetch-tools.js          # Yosys + Icarus Verilog only: atalanta stays out of public installers (licence)
+      - name: No atalanta in the installer
+        run: test -z "$(ls resources/tools/*/bin | grep -i atalanta)"
+      - run: npm run dist -- --publish always     # uploads to the draft release for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
