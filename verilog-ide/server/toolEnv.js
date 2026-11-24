@@ -17,8 +17,7 @@ const EXTRA = {
 
 function toolPath({ platform = process.platform, envPath = '', resourcesPath, packaged = false } = {}) {
   const delimiter = platform === 'win32' ? ';' : ':';
-  // Windows has no rpath: the suite's DLLs live in lib/ and are found through PATH (as its environment.bat does)
-  const bundled = packaged && resourcesPath ? ['bin', ...(platform === 'win32' ? ['lib'] : [])].map(d => path.join(resourcesPath, 'tools', d)) : [];
+  const bundled = packaged && resourcesPath ? [path.join(resourcesPath, 'tools', 'bin')] : [];
   const existing = String(envPath).split(delimiter).filter(Boolean);
   return [...new Set([...bundled, ...existing, ...(EXTRA[platform] || [])])].join(delimiter);
 }

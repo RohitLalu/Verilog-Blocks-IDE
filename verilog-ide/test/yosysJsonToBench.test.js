@@ -36,7 +36,7 @@ test('matches the Python original on every fixture it handled correctly', { skip
     const out = path.join(tmp, n + '.bench');
     const r = spawnSync('python3', [path.join(__dirname, '..', 'server', 'yosys_json_to_bench.py'), path.join(DIR, n + '.json'), out]);
     assert.equal(r.status, 0, n + ': ' + r.stderr);
-    assert.equal(body(convert(n)), body(fs.readFileSync(out, 'utf8')), n);
+    assert.equal(body(convert(n)), body(fs.readFileSync(out, 'utf8').replace(/\r\n/g, '\n')), n);   // Python writes CRLF on Windows
     compared++;
   }
   assert.ok(compared >= 15, 'compared ' + compared);
