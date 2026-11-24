@@ -255,6 +255,11 @@ The backend can read and write files, so it is locked down by default:
 - Project and block names must be a single path segment: letters, digits, spaces, `_ - . ( )`, at most 100 characters.
 - `/api/pdk/read-lib` serves only `.lib` files that sit inside a configured PDK folder.
 - Never expose the API to an untrusted network: there is no login. Use a reverse proxy with authentication for shared servers.
+- Dependencies: `npm audit --omit=dev` (what the app and the Docker server ship) reports no known vulnerabilities. The
+  desktop app runs a supported Electron (45), with a sandboxed renderer that only loads the app's own pages.
+  `npm audit` still lists 6 moderate findings in electron-builder's packaging tools (an old `minimatch` in its glob
+  handling). They run only at build time, on patterns from this repository; the suggested fix is a downgrade, so they
+  are accepted until electron-builder updates. Check again with `npm audit` before each release.
 
 ### Main backend routes
 
