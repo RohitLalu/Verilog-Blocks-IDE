@@ -4,3 +4,18 @@ Things to be done apart from technical stuff.
 2. Promotional Video in Website
 3. New releases occurs every 2-3 months with improved features and data storing capabilities.
 4. Perform online publicity
+
+
+next version changes (v2.0.2):
+1. ability to edit names of input and output of individual blocks (Especially primary input and primary output)
+2. adding a small open source llm to aid with learning better.
+
+video inclusions:
+1. slight background music
+2. yosys run
+3. showing how a new module is created using other smaller user made custom modules 
+
+future updates:
+bring complete librelane workflow but gui.
+agentic help for chip design with automated decision making once requirements are correctly understood
+addition of gds viewer like https://gds-viewer.tinytapeout.com
