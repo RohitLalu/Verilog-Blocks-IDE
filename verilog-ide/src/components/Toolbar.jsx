@@ -14,6 +14,7 @@ const B={
   red:    mk({background:'#1c0a0a',border:'1px solid #991b1b',color:'#f87171'}),
   cyan:   mk({background:'#041e2e',border:'1px solid #0e7490',color:'#38bdf8'}),
   amber:  mk({background:'#1c1508',border:'1px solid #92400e',color:'#f59e0b'}),
+  pink:   mk({background:'#2a0f24',border:'1px solid #9d174d',color:'#f472b6'}),
 };
 
 export default function Toolbar({ onOpenPDKSelector }) {
@@ -164,6 +165,10 @@ export default function Toolbar({ onOpenPDKSelector }) {
         style={{ ...B.amber, opacity:atpgRunning ? 0.6 : 1 }}>
         {atpgRunning ? '⟳' : '◈'} ATPG
       </button>
+
+      {/* ✦ Ask — learning assistant (local model through Ollama) */}
+      <button onClick={() => setActivePanel(activePanel === 'assistant' ? 'blocks' : 'assistant')} style={B.pink}
+        title="Learning assistant: ask about your circuit, Verilog or the flow">✦ Ask</button>
 
       <div style={{ width:1, height:22, background:'#1e2733' }} />
 

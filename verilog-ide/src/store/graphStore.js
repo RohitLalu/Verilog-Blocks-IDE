@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
-import { netName, edgeId, normalizeEdges, nextInstanceName, dedupeInstanceNames } from '../lib/netNaming.js';
+import { netName, edgeId, normalizeEdges, nextInstanceName, dedupeInstanceNames, checkPinName } from '../lib/netNaming.js';
 
 const tryLS=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const setLS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
@@ -85,7 +85,7 @@ const useStore=create((set,get)=>({
       const id=`node_${stamp}_${i}_${Math.random().toString(36).slice(2,5)}`;
       idMap[old.id]=id;
       return{...rest,id,selected:true,position:{x:old.position.x+off,y:old.position.y+off},
-        data:{...old.data,instanceName:name,paramValues:{...old.data.paramValues}}};
+        data:{...old.data,instanceName:name,paramValues:{...old.data.paramValues},pinNames:undefined}};   // custom names would clash
     });
     const byId=new Map(pasted.map(n=>[n.id,n]));
     const pastedEdges=clipboard.edges.map(e=>{
@@ -104,6 +104,19 @@ const useStore=create((set,get)=>({
     const key=`${nodeId}:${paramName}`,now=Date.now(),last=get()._paramEdit;
     if(last.key!==key||now-last.at>1000)get()._pushHistory();
     set({_paramEdit:{key,at:now},nodes:get().nodes.map(n=>n.id===nodeId?{...n,data:{...n.data,paramValues:{...n.data.paramValues,[paramName]:value}}}:n)});
+  },
+  // Give a pin's signal a custom name ('' = back to "<instance>_<pin>"). Returns an error message, or null when renamed.
+  renamePin:(nodeId,pin,dir,name)=>{
+    const{nodes,edges,pushNotification}=get();name=(name||'').trim();
+    const node=nodes.find(n=>n.id===nodeId);if(!node)return'No such block.';
+    if((node.data.pinNames?.[pin]||'')===name)return null;
+    const err=checkPinName(nodes,edges,nodeId,pin,dir,name);
+    if(err){pushNotification(err,'error');return err;}
+    get()._pushHistory();
+    const pinNames={...node.data.pinNames};if(name)pinNames[pin]=name;else delete pinNames[pin];
+    const next=nodes.map(n=>n.id===nodeId?{...n,data:{...n.data,pinNames}}:n);
+    set({nodes:next,edges:normalizeEdges(next,edges)});   // wires from a renamed output take its name
+    return null;
   },
   // Replace the whole graph (open project). Repairs names/nets written by older versions.
   loadGraph:(graph)=>{

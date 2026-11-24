@@ -16,7 +16,8 @@ export function parseVCD(text){
       const type=p[0],width=parseInt(p[1])||1,id=p[2],name=p[3]||id;
       const fullName=[...scopePath.slice(1).map(s=>s.name),name].join('.');
       const sig={id,name,fullName,scope:scopePath.slice(1).map(s=>s.name),width,type,transitions:[],color:null};
-      signalMap.set(id,sig);curScope.signals.push(sig);continue;
+      // one net seen from several scopes shares an id: keep the top-most name (the testbench's), not an inner block's pin name
+      if(!signalMap.has(id))signalMap.set(id,sig);curScope.signals.push(sig);continue;
     }
     if(['$enddefinitions','$comment','$version','$date'].includes(tok)){until('$end');continue;}
     // $dumpvars/$dumpall/... wrap ordinary value changes (the initial value of every signal): read them, skip only the keywords

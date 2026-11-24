@@ -1,4 +1,4 @@
-import React,{memo}from'react';
+import React,{memo,useState}from'react';
 import{Handle,Position}from'reactflow';
 import useStore from'../store/graphStore.js';
 const PC={CLK:'#facc15',clk:'#facc15',RESET_B:'#f87171',RN:'#f87171',RST:'#f87171',SET_B:'#fb923c',SN:'#fb923c',SCE:'#f97316',SE:'#f97316',SCD:'#fdba74',SI:'#fdba74',default_in:'#60a5fa',default_out:'#4ade80'};
@@ -11,6 +11,30 @@ const slackColor=s=>{
   if(s<2)return'#166534';
   return null;
 };
+
+// A pin's label; double-click to give its signal a name (Enter saves, Esc cancels, empty = default name)
+function PinLabel({nodeId,pin,dir,custom,color,width}){
+  const renamePin=useStore(s=>s.renamePin);
+  const[editing,setEditing]=useState(false);
+  const commit=v=>{if(!renamePin(nodeId,pin,dir,v))setEditing(false);};
+  const widthTag=width>1&&<span style={{color:'#334155',fontSize:8}}>[{width-1}:0]</span>;
+  if(editing)return(
+    <input className="nodrag" autoFocus defaultValue={custom||''} placeholder="default name" spellCheck={false}
+      aria-label={`Name for pin ${pin}`}
+      onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')commit(e.currentTarget.value);if(e.key==='Escape')setEditing(false);}}
+      onBlur={e=>commit(e.currentTarget.value)}
+      style={{width:92,background:'#0d1117',border:'1px solid #38bdf8',borderRadius:3,color:'#e2e8f0',fontSize:9,fontFamily:'inherit',
+        padding:'1px 4px',margin:dir==='in'?'0 0 0 10px':'0 10px 0 0',outline:'none'}}/>
+  );
+  const name=custom&&<span style={{color:'#38bdf8',fontWeight:600}}>{custom}</span>;
+  return(
+    <span title={`${pin}${custom?` → ${custom}`:''}: double-click to name this signal`}
+      onDoubleClick={e=>{e.stopPropagation();setEditing(true);}}
+      style={{color,fontSize:9,opacity:.85,cursor:'text',display:'flex',gap:5,alignItems:'baseline',margin:dir==='in'?'0 0 0 10px':'0 10px 0 0'}}>
+      {dir==='in'?<>{pin}{widthTag}{name}</>:<>{name}{widthTag}{pin}</>}
+    </span>
+  );
+}
 
 const BlockNode=memo(({id,data,selected})=>{
   const removeNode=useStore(s=>s.removeNode);
@@ -49,12 +73,12 @@ const BlockNode=memo(({id,data,selected})=>{
         {ins.map(p=>(
           <div key={`i_${p.name}`} style={{display:'flex',alignItems:'center',height:24,position:'relative'}}>
             <Handle type="target" position={Position.Left} id={p.name} style={{background:pc(p.name,false),width:9,height:9,border:'1.5px solid #0d1117',left:-5,top:'50%',transform:'translateY(-50%)'}}/>
-            <span style={{color:pc(p.name,false),fontSize:9,marginLeft:10,opacity:.85}}>{p.name}{p.width>1&&<span style={{color:'#334155',fontSize:8}}>[{p.width-1}:0]</span>}</span>
+            <PinLabel nodeId={id} pin={p.name} dir="in" custom={data.pinNames?.[p.name]} color={pc(p.name,false)} width={p.width}/>
           </div>
         ))}
         {outs.map(p=>(
           <div key={`o_${p.name}`} style={{display:'flex',alignItems:'center',justifyContent:'flex-end',height:24,position:'relative'}}>
-            <span style={{color:'#4ade80',fontSize:9,marginRight:10,opacity:.85}}>{p.width>1&&<span style={{color:'#334155',fontSize:8}}>[{p.width-1}:0]</span>}{p.name}</span>
+            <PinLabel nodeId={id} pin={p.name} dir="out" custom={data.pinNames?.[p.name]} color="#4ade80" width={p.width}/>
             <Handle type="source" position={Position.Right} id={p.name} style={{background:'#4ade80',width:9,height:9,border:'1.5px solid #0d1117',right:-5,top:'50%',transform:'translateY(-50%)'}}/>
           </div>
         ))}

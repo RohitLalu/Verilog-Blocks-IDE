@@ -1,10 +1,11 @@
 import{isSequential,isCombinational}from'./CellEvaluator.js';
+import{pinSignal}from'../lib/netNaming.js';
 const POWER=new Set(['VPWR','VGND','VPB','VNB','VDD','VSS']);
 export function buildNetlist(nodes,edges){
   const by={},to={};
   edges.forEach(e=>{const n=e.data?.wireName||`w_${e.id}`;by[`${e.target}:${e.targetHandle}`]=n;to[`${e.source}:${e.sourceHandle}`]=n;});
-  const inSig=(node,p)=>by[`${node.id}:${p}`]||`${node.data.instanceName}_${p}`;
-  const outSig=(node,p)=>to[`${node.id}:${p}`]||`${node.data.instanceName}_${p}`;
+  const inSig=(node,p)=>by[`${node.id}:${p}`]||pinSignal(node,p);
+  const outSig=(node,p)=>to[`${node.id}:${p}`]||pinSignal(node,p);
   const nets=new Map(),cells=new Map();
   const ensureNet=id=>{if(!nets.has(id))nets.set(id,{id,value:'x',drivers:[],fanout:[]});return nets.get(id);};
   const seenP=new Set(),topIn=[],topOut=[];

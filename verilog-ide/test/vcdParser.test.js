@@ -38,3 +38,23 @@ test('initial values inside $dumpvars are kept (a signal that never changes stil
   assert.deepEqual(sig('bus').transitions, [{ time: 0, value: 5 }, { time: 30000, value: 15 }]);
   assert.equal(p.endTime, 30000);
 });
+
+test('a net seen from several scopes (same id) is shown under its top-most name', () => {
+  const p = parseVCD(`$timescale 1ns $end
+$scope module tb $end
+$var reg 1 ! x $end
+$scope module dut $end
+$var wire 1 ! a $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+0!
+$end
+#5
+1!
+`);
+  assert.deepEqual(p.signals.map(s => s.name), ['x']);
+  assert.deepEqual(p.signals[0].transitions, [{ time: 0, value: 0 }, { time: 5, value: 1 }]);
+});

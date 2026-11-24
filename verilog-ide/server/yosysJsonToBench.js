@@ -50,7 +50,7 @@ function convertNetlist(netlist) {
   const modules = (netlist && netlist.modules) || {};
   const modNames = Object.keys(modules);
   if (!modNames.length) throw new Error('no modules in JSON');
-  const modName = modNames[0];
+  const modName = modules.top ? 'top' : modNames[0];
   const mod = modules[modName];
   const ports = mod.ports || {}, cells = mod.cells || {}, netnames = mod.netnames || {};
   const warnings = [];

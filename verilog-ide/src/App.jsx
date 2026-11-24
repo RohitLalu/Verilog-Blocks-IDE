@@ -7,6 +7,7 @@ import TestbenchPanel from'./components/TestbenchPanel.jsx';
 import SimulatorPanel from'./components/SimulatorPanel.jsx';
 import STAPanel from'./components/STAPanel.jsx';
 import ATPGPanel from'./components/ATPGPanel.jsx';
+import AssistantPanel from'./components/AssistantPanel.jsx';
 import TutorialPanel from'./components/TutorialPanel.jsx';
 import{CustomBlockBuilder,HierarchyExporter,PDKSelector}from'./components/Modals.jsx';
 import ProjectBrowser from'./components/ProjectBrowser.jsx';
@@ -51,6 +52,7 @@ export default function App(){
       case'testbench':  return<TestbenchPanel/>;
       case'simulator':  return<SimulatorPanel/>;
       case'atpg':       return<ATPGPanel/>;
+      case'assistant':  return<AssistantPanel/>;
       default:          return null;
     }
   };

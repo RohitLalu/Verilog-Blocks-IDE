@@ -2,6 +2,7 @@ import{runSimulation}from'../lib/runSimulation.js';
 import React,{useState,useMemo}from'react';
 import useStore from'../store/graphStore.js';
 import{generateTestbench}from'../codegen/graphToVerilog.js';
+import{pinSignal}from'../lib/netNaming.js';
 import VCDViewer from'./VCDViewer.jsx';
 
 function useTopInputs(nodes,edges){
@@ -11,7 +12,7 @@ function useTopInputs(nodes,edges){
     nodes.forEach(node=>{
       node.data.ports?.inputs?.forEach(p=>{
         if(!by[`${node.id}:${p.name}`]){
-          const sig=`${node.data.instanceName}_${p.name}`;
+          const sig=pinSignal(node,p.name);
           if(!seen.has(sig)){seen.add(sig);ports.push({sig,portName:p.name,width:p.width});}
         }
       });
