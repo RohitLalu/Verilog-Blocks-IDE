@@ -19,7 +19,7 @@ import React, {
 import { parseVCD, getValueAt, formatValue, timescaleToNs } from '../lib/vcdParser.js';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
-const SIG_COL_W  = 220;   // left signal list width
+const SIG_COL_W  = 150;   // signal-name column (names are cut at 18 characters)
 const VAL_COL_W  = 72;    // value-at-cursor column
 const HDR_H      = 32;    // time ruler height
 const ROW_H      = 28;    // height per signal row
@@ -75,6 +75,7 @@ export default function VCDViewer({ vcdText, onClose }) {
   const [dragX0,    setDragX0]    = useState(0);
   const [scrollX0,  setScrollX0]  = useState(0);
   const [canvasW,   setCanvasW]   = useState(900);
+  const [showList,  setShowList]  = useState(false);  // the add/remove signal list: folded away so the waves get the width
 
   // Populate view signals from parsed data
   useEffect(() => {
@@ -283,7 +284,8 @@ export default function VCDViewer({ vcdText, onClose }) {
     const y = e.clientY - rect.top - HDR_H;
     if (x < SIG_COL_W && y >= 0) {
       const idx = Math.floor(y / ROW_H);
-      if (idx < sigObjs.length) setSelected(sigObjs[idx]?.id || null);
+      const id = sigObjs[idx]?.id || null;
+      if (idx < sigObjs.length) setSelected(cur => cur === id ? null : id);   // click again to deselect (and fold the list)
     }
   }, [scrollX, sigObjs]);
 
@@ -380,6 +382,8 @@ export default function VCDViewer({ vcdText, onClose }) {
           ts: {parsed?.timescale || '1ns'}  end: {fmtTime(endTime, parsed?.timescale)}
         </span>
 
+        <ZBtn onClick={() => setShowList(v => !v)} title="Add or remove signals" style={{ width: 'auto', padding: '0 7px', fontSize: 10, whiteSpace: 'nowrap' }}>☰ signals</ZBtn>
+
         {/* Upload VCD */}
         <label style={{ background: '#161b27', border: `1px solid ${C.border}`, borderRadius: 4, color: '#475569', fontSize: 10, padding: '3px 8px', cursor: 'pointer' }}>
           ↑ Load VCD
@@ -392,8 +396,8 @@ export default function VCDViewer({ vcdText, onClose }) {
       {/* ── Main area ────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* Left: signal tree */}
-        <div style={{ width: 180, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        {/* Left: signal list (open on demand, when nothing is shown yet, or to edit the selected signal) */}
+        {(showList || !sigObjs.length || selected) && <div style={{ width: 180, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}` }}>
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="filter signals…"
@@ -452,6 +456,8 @@ export default function VCDViewer({ vcdText, onClose }) {
             </div>
           )}
         </div>
+
+        }
 
         {/* Right: waveform canvas */}
         <div ref={containerRef} style={{ flex: 1, overflow: 'hidden', cursor: dragging ? 'grabbing' : 'crosshair', position: 'relative' }}
@@ -592,15 +598,18 @@ function truncate(str, max) {
 }
 
 function computeGridNs(pxPerNs) {
-  // Pick a grid step that gives ~60–120px spacing
-  const candidates = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000];
-  for (const c of candidates) if (c * pxPerNs >= 60) return c;
-  return 10000;
+  // Smallest 1-2-5 step (1, 2, 5, 10, 20, …) that gives >= 60px spacing; VCD times are often ps, so runs reach 1e5+ units
+  for (let mag = 1; mag < 1e15; mag *= 10) for (const m of [1, 2, 5]) if (m * mag * pxPerNs >= 60) return m * mag;
+  return 1e15;
 }
 
+// t is in timescale units ("1ps", "10 ns", …); shown in the largest unit that keeps it >= 1: 100000 (1ps) -> "100ns"
 function fmtTime(t, timescale) {
-  const unit = (timescale || '1ns').match(/(fs|ps|ns|us|ms|s)/i)?.[0]?.toLowerCase() || 'ns';
-  return `${Number.isInteger(t) ? t : t.toFixed(2)}${unit}`;
+  const UNITS = ['fs', 'ps', 'ns', 'us', 'ms', 's'];
+  const m = (timescale || '1ns').match(/([\d.]*)\s*(fs|ps|ns|us|ms|s)/i);
+  let v = t * (parseFloat(m?.[1]) || 1), u = UNITS.indexOf((m?.[2] || 'ns').toLowerCase());
+  while (Math.abs(v) >= 1000 && u < UNITS.length - 1) { v /= 1000; u++; }
+  return `${+v.toFixed(3)}${UNITS[u]}`;
 }
 
 const ZBtn = ({ onClick, children, title, style: s }) => (

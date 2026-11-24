@@ -61,10 +61,7 @@
   .sub { color: var(--muted); max-width: 64ch; margin: 0 0 40px; }
 
   /* video */
-  .video { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; color: var(--muted);
-           background: radial-gradient(ellipse at center, #1a2333 0%, var(--panel) 70%); }
-  .video .play { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--faint); display: grid; place-items: center; margin: 0 auto 14px; }
-  .video .play::after { content: ''; border-left: 22px solid var(--faint); border-top: 13px solid transparent; border-bottom: 13px solid transparent; margin-left: 6px; }
+  video { display: block; width: 100%; height: auto; background: var(--panel); }
 
   /* steps */
   .step { display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: center; margin-bottom: 64px; }
@@ -132,12 +129,13 @@
 
 <section id="video">
   <div class="wrap">
-    <h2>See it in two minutes</h2>
-    <p class="sub">From an empty canvas to a simulated, analysed circuit.</p>
-    <!-- Replace this block with <video controls poster="assets/shots/canvas.jpg" src="assets/vbide-promo.mp4"> when the video is ready -->
-    <div class="shot video" role="img" aria-label="Promotional video placeholder">
-      <div><div class="play" aria-hidden="true"></div>The video is on its way.</div>
-    </div>
+    <h2>See it in one minute</h2>
+    <p class="sub">From an empty canvas to a simulated, analysed circuit. Recorded from the real app, nothing staged.</p>
+    <div class="shot"><video controls playsinline preload="metadata" poster="assets/vbide-promo.jpg" width="1920" height="1080"
+      aria-label="Promo video: a full adder is built from SKY130 cells, then its Verilog, simulation, timing and fault coverage are shown">
+      <source src="assets/vbide-promo.mp4" type="video/mp4">
+      <a href="assets/vbide-promo.mp4">Download the video (MP4, 2.4 MB)</a>
+    </video></div>
   </div>
 </section>
 

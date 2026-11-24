@@ -138,16 +138,23 @@ export function generateTestbench(nodes,edges,projectName,tbInputs={},customCode
     node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=`${node.data.instanceName}_${p.name}`;if(!seen.has(sig)){seen.add(sig);topOut.push({sig,portName:p.name,width:p.width});}}});
   });
   const hex=(v,w)=>w>1?`${w}'h${Number(v).toString(16).toUpperCase().padStart(Math.ceil(w/4),'0')}`:`1'b${v}`;
-  const clkLines=[],initLines=[],stimLines=[];
+  // Each stimulated input gets its own initial block, so all inputs run at the same time (one shared block ran them one
+  // after another), and every step waits one period (sequence steps used to wait period*(i+1): changes at 10, 30, 60, ...).
+  const clkLines=[],initLines=[],stimBlocks=[];let stimEnd=0,maxPeriod=0;
+  const stim=(sig,period,values)=>{
+    stimBlocks.push(['    initial begin',...values.map(v=>`        #${period};  ${sig}=${v};`),'    end'].join('\n'));
+    stimEnd=Math.max(stimEnd,period*values.length);maxPeriod=Math.max(maxPeriod,period);
+  };
   topIn.forEach(port=>{
-    const cfg=tbInputs[port.sig]||tbInputs[port.portName]||{type:'constant',value:0};const w=port.width;
+    const cfg=tbInputs[port.sig]||tbInputs[port.portName]||{type:'constant',value:0};const w=port.width;const period=cfg.period||10;
     switch(cfg.type){
-      case'clock':initLines.push(`        ${port.sig}=1'b0;`);clkLines.push(`    always #${Math.max(1,Math.floor((cfg.period||10)/2))} ${port.sig}=~${port.sig};`);break;
-      case'sequence':initLines.push(`        ${port.sig}=${hex(0,w)};`);(cfg.values||[0,1,0,1]).forEach((v,i)=>stimLines.push(`        #${(cfg.period||10)*(i+1)};  ${port.sig}=${hex(v,w)};`));break;
-      case'random':initLines.push(`        ${port.sig}=${hex(0,w)};`);for(let i=0;i<(cfg.count||8);i++)stimLines.push(`        #${cfg.period||10};  ${port.sig}=$urandom;`);break;
+      case'clock':initLines.push(`        ${port.sig}=1'b0;`);clkLines.push(`    always #${Math.max(1,Math.floor(period/2))} ${port.sig}=~${port.sig};`);break;
+      case'sequence':initLines.push(`        ${port.sig}=${hex(0,w)};`);stim(port.sig,period,(cfg.values||[0,1,0,1]).map(v=>hex(v,w)));break;
+      case'random':initLines.push(`        ${port.sig}=${hex(0,w)};`);stim(port.sig,period,Array(cfg.count||8).fill('$urandom'));break;
       default:initLines.push(`        ${port.sig}=${hex(cfg.value??0,w)};`);
     }
   });
+  const finishAt=stimEnd?stimEnd+maxPeriod:500;   // one more period to see the last values; 500 when only clocks/constants
   const monFmt=[...topIn,...topOut].map(p=>`${p.sig}=%b`).join('  ');
   const monVars=[...topIn,...topOut].map(p=>p.sig).join(', ');
   return[`// ${'─'.repeat(60)}`,`// Testbench — VerilogBlocks IDE  ${projectName}  ${ts}`,`// ${'─'.repeat(60)}`,'',
@@ -156,7 +163,7 @@ export function generateTestbench(nodes,edges,projectName,tbInputs={},customCode
     topOut.map(p=>`    wire ${p.width>1?`[${p.width-1}:0] `:''}${p.sig};`).join('\n'),
     '','    top dut (',[...topIn,...topOut].map(p=>`        .${p.sig}(${p.sig})`).join(',\n'),'    );','',
     ...clkLines,'','    initial begin','        $dumpfile("wave.vcd");','        $dumpvars(0,top_tb);',
-    ...initLines,'',  ...stimLines,'','        #500; $display("Simulation done."); $finish;','    end','',
+    ...initLines,'',`        #${finishAt}; $display("Simulation done."); $finish;`,'    end','',...stimBlocks,'',
     `    initial $monitor("t=%0t  ${monFmt}",$time,${monVars});`,'','endmodule'].join('\n');
 }
 
