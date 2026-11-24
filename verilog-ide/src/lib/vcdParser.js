@@ -18,7 +18,9 @@ export function parseVCD(text){
       const sig={id,name,fullName,scope:scopePath.slice(1).map(s=>s.name),width,type,transitions:[],color:null};
       signalMap.set(id,sig);curScope.signals.push(sig);continue;
     }
-    if(['$enddefinitions','$dumpvars','$comment','$version','$date','$end'].includes(tok)){until('$end');continue;}
+    if(['$enddefinitions','$comment','$version','$date'].includes(tok)){until('$end');continue;}
+    // $dumpvars/$dumpall/... wrap ordinary value changes (the initial value of every signal): read them, skip only the keywords
+    if(['$dumpvars','$dumpall','$dumpon','$dumpoff','$end'].includes(tok))continue;
     if(tok.startsWith('#')){curTime=parseInt(tok.slice(1));continue;}
     if(/^[01xzXZ]/.test(tok)&&tok.length>1&&!tok.startsWith('b')&&!tok.startsWith('r')){
       const val=tok[0].toLowerCase(),id=tok.slice(1),sig=signalMap.get(id);

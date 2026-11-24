@@ -74,9 +74,8 @@ app.on('browser-window-created', (_e, win) => {
       // simulation: every input random, run iverilog, the waveform opens
       await click(win, 'Sim');
       await win.webContents.executeJavaScript(`[...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'random').forEach(b => b.click())`);
-      await wait(500); await shot(win, 'testbench');
-      // shortcut: no waveform shot yet, the VCD viewer opens zoomed into the first ~300 ps; add it once that is fixed
-      await click(win, 'iverilog'); await wait(5000);
+      await wait(500);
+      await click(win, 'iverilog'); await wait(5000); await shot(win, 'waveform');
       // ATPG needs atalanta on PATH
       await click(win, 'ATPG'); await click(win, 'Run ATPG'); await wait(6000); await shot(win, 'atpg');
       await click(win, 'STA'); await click(win, 'Run STA'); await wait(2500); await shot(win, 'sta');
