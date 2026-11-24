@@ -144,6 +144,33 @@ It checks that the window renders from `file://`, that the preload bridge works,
 When tools are bundled, it also checks that yosys / iverilog / vvp resolve **inside** the app, that a simulation through IPC
 returns a waveform, and that ATPG and a Yosys + ABC run succeed.
 
+#### Publishing a release
+
+Releases go to the repository's GitHub **Releases** page as a draft that you review before anyone sees it.
+
+1. Set `"version"` in `verilog-ide/package.json` (for example `2.1.0`) and commit it.
+2. Tag that commit and push the tag:
+
+   ```bash
+   git tag v2.1.0
+   git push origin v2.1.0
+   ```
+
+3. `.github/workflows/desktop.yml` first runs the tests and the packaged-app smoke test on macOS, Linux and Windows.
+   Only if all three pass does it create a draft release and attach the installers: `.dmg` + `.zip` (macOS arm64),
+   `.AppImage` (Linux x64), and the NSIS `.exe` + `.zip` (Windows x64).
+4. On GitHub, open **Releases**, check the draft and its files, then click **Publish release**.
+
+The tag must match the version (`v` + `version`), or the release job stops.
+Public installers never include atalanta (see below).
+
+Until the apps are code-signed, users see a warning the first time they open them:
+
+* **macOS** may call the app "damaged". Remove the download quarantine once with
+  `xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"`.
+* **Windows** SmartScreen says "Windows protected your PC": click *More info*, then *Run anyway*.
+* **Linux**: `chmod +x VerilogBlocks*.AppImage`, then run it.
+
 #### Bundled tools
 
 `npm run fetch-tools` (`scripts/fetch-tools.js`) downloads the OSS CAD Suite release pinned in `tools/tools.lock.json`
