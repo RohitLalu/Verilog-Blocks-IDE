@@ -1,0 +1,6 @@
+Things to be done apart from technical stuff.
+
+1. Netlify Website to specify download and specs of how VBIDE works
+2. Promotional Video in Website
+3. New releases occurs every 2-3 months with improved features and data storing capabilities.
+4. Perform online publicity
