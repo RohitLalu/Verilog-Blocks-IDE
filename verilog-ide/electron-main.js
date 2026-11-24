@@ -8,7 +8,7 @@ const { runAtpg } = require('./server/atpgRunner.js');
 const { findLiberty, findFile } = require('./server/pdkFiles.js');
 const { safeId, safeName, projectDir, resolveInside, insideAnyRoot, sanitizePrefs } = require('./server/pathSafe.js');
 const { dataDirs, assertWritableLocations } = require('./server/appPaths.js');
-const { toolPath, ivlBaseAlias } = require('./server/toolEnv.js');
+const { toolPath, ivlBaseAlias, removeAlias } = require('./server/toolEnv.js');
 const { run } = require('./server/proc.js');
 
 // ── modes ─────────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ const BUNDLED_TOOLS = app.isPackaged ? path.join(process.resourcesPath, 'tools')
 if (BUNDLED_TOOLS && fs.existsSync(BUNDLED_TOOLS)) {
   try {
     const alias = ivlBaseAlias(BUNDLED_TOOLS);
-    if (alias) { process.env.VBIDE_IVL_BASE = path.join(alias, 'lib', 'ivl'); app.on('quit', () => fs.rmSync(path.dirname(alias), { recursive: true, force: true })); }
+    if (alias) { process.env.VBIDE_IVL_BASE = path.join(alias, 'lib', 'ivl'); app.on('quit', () => removeAlias(alias)); }
   } catch (e) { console.error('Could not create a space-free path for iverilog; simulation may fail:', e.message); }
 }
 const DIRS = assertWritableLocations(dataDirs({ isPackaged: app.isPackaged, appDir: __dirname, userData: app.getPath('userData') }));
