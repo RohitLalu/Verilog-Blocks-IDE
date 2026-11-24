@@ -19,19 +19,19 @@
     "fetch-tools": "node scripts/fetch-tools.js"
   },
   "dependencies": {
+    "express": "4.22.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "reactflow": "11.11.4",
-    "zustand": "4.5.5",
-    "express": "4.22.3"
+    "zustand": "4.5.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.3.4",
-    "vite": "5.4.21",
     "concurrently": "8.2.2",
-    "wait-on": "7.2.0",
-    "electron": "33.2.0",
-    "electron-builder": "26.15.3"
+    "electron": "45.3.0",
+    "electron-builder": "26.18.1",
+    "vite": "6.4.6",
+    "wait-on": "7.2.0"
   },
   "build": {
     "appId": "io.github.rohitlalu.vbide",
