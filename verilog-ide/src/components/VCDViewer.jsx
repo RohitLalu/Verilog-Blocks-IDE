@@ -62,7 +62,7 @@ export default function VCDViewer({ vcdText, onClose }) {
   const containerRef = useRef(null);
   const rafRef       = useRef(null);
 
-  const [zoom,      setZoom]      = useState(1);
+  const [zoomSet,   setZoom]      = useState(null);  // null = fit the whole run (follows the panel width)
   const [scrollX,   setScrollX]   = useState(0);    // px offset from left
   const [cursor,    setCursor]    = useState(null);  // time in ns
   const [viewSigs,  setViewSigs]  = useState([]);    // signals in waveform view
@@ -80,7 +80,7 @@ export default function VCDViewer({ vcdText, onClose }) {
   useEffect(() => {
     if (!parsed) return;
     setViewSigs(parsed.signals.slice(0, 20).map(s => s.id));
-    setScrollX(0); setZoom(1); setCursor(null);
+    setScrollX(0); setZoom(null); setCursor(null);
   }, [parsed]);
 
   // Canvas width observer
@@ -96,10 +96,17 @@ export default function VCDViewer({ vcdText, onClose }) {
   }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const pxPerNs  = MIN_PX_NS * zoom;
   const endTime  = parsed?.endTime ?? 200;
-  const totalPx  = endTime * pxPerNs;
   const waveW    = canvasW - SIG_COL_W - VAL_COL_W;
+  // VCD times are in timescale units (often ps), so a short run can be 100 000s of units long: zooming out must reach
+  // "the whole run", not a fixed 0.1x (which still showed only the first few ns).
+  const fitZoom  = waveW > 0 && endTime > 0 ? waveW / (endTime * MIN_PX_NS) : 1;
+  const minZoom  = Math.min(0.1, fitZoom);
+  const zoom     = zoomSet ?? fitZoom;
+  const zoomBy   = f => setZoom(clamp(zoom * f, minZoom, 500));
+  const fitAll   = () => { setZoom(null); setScrollX(0); };
+  const pxPerNs  = MIN_PX_NS * zoom;
+  const totalPx  = endTime * pxPerNs;
 
   const sigObjs = useMemo(() => {
     if (!parsed) return [];
@@ -287,7 +294,7 @@ export default function VCDViewer({ vcdText, onClose }) {
     if (e.ctrlKey || e.metaKey) {
       // Zoom centred on cursor
       const ratio = e.deltaY < 0 ? 1.25 : 0.8;
-      const newZoom = clamp(zoom * ratio, 0.1, 500);
+      const newZoom = clamp(zoom * ratio, minZoom, 500);
       const timeAtCursor = cursor ?? (scrollX + waveW / 2) / pxPerNs;
       const newPxNs = MIN_PX_NS * newZoom;
       const newScrollX = clamp(timeAtCursor * newPxNs - waveW / 2, 0, timeAtCursor * newPxNs);
@@ -296,21 +303,21 @@ export default function VCDViewer({ vcdText, onClose }) {
     } else {
       setScrollX(s => clamp(s + e.deltaY * 2, 0, Math.max(0, totalPx - waveW)));
     }
-  }, [zoom, cursor, scrollX, pxPerNs, waveW, totalPx]);
+  }, [zoom, minZoom, cursor, scrollX, pxPerNs, waveW, totalPx]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = e => {
       if (e.target.tagName === 'INPUT') return;
-      if (e.key === '+' || e.key === '=') setZoom(z => clamp(z * 1.25, 0.1, 500));
-      if (e.key === '-')                  setZoom(z => clamp(z * 0.8,  0.1, 500));
-      if (e.key === 'f' || e.key === 'F') { setZoom(1); setScrollX(0); }
+      if (e.key === '+' || e.key === '=') zoomBy(1.25);
+      if (e.key === '-')                  zoomBy(0.8);
+      if (e.key === 'f' || e.key === 'F') fitAll();
       if (e.key === 'ArrowRight')         setScrollX(s => clamp(s + 50,  0, Math.max(0, totalPx - waveW)));
       if (e.key === 'ArrowLeft')          setScrollX(s => clamp(s - 50,  0, Math.max(0, totalPx - waveW)));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [totalPx, waveW]);
+  }, [totalPx, waveW, zoom, minZoom]);
 
   // ── File upload ───────────────────────────────────────────────────────────
   const onFileUpload = useCallback(e => {
@@ -352,11 +359,10 @@ export default function VCDViewer({ vcdText, onClose }) {
         <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 700, marginRight: 4 }}>⬡ VCD Viewer</span>
 
         {/* Zoom */}
-        <ZBtn onClick={() => setZoom(z => clamp(z*1.4, 0.1, 500))}>+</ZBtn>
-        <span style={{ color: '#334155', fontSize: 10, minWidth: 44, textAlign: 'center' }}>{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}×</span>
-        <ZBtn onClick={() => setZoom(z => clamp(z*0.71, 0.1, 500))}>−</ZBtn>
-        <ZBtn onClick={() => { setZoom(1); setScrollX(0); }} title="Fit all (F)">fit</ZBtn>
-        <ZBtn onClick={() => { setZoom(z => clamp(z * (endTime * MIN_PX_NS) / Math.max(waveW, 1), 0.1, 500)); }} title="Zoom to fit">⤢</ZBtn>
+        <ZBtn onClick={() => zoomBy(1.4)}>+</ZBtn>
+        <span style={{ color: '#334155', fontSize: 10, minWidth: 44, textAlign: 'center' }}>{zoomSet === null ? 'fit' : (zoom < 1 ? zoom.toPrecision(2) : zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)) + '×'}</span>
+        <ZBtn onClick={() => zoomBy(0.71)}>−</ZBtn>
+        <ZBtn onClick={fitAll} title="Show the whole run (F)">fit</ZBtn>
 
         <div style={{ width: 1, height: 18, background: C.border }} />
 
