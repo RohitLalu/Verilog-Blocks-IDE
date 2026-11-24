@@ -37,13 +37,21 @@ Everything runs on your computer. Projects are ordinary files in your user folde
 
 ## Roadmap
 
-**v2.0.2 (next)**
+**v2.0.2 (released)**
 
-* Rename the inputs and outputs of individual blocks, especially the design's primary inputs and outputs
-  (today they are named `<instance>_<pin>`).
-* A learning assistant: ask questions about your circuit, Verilog or the EDA steps. It runs a small open-source model
-  on your own computer through [Ollama](https://ollama.com) (installed separately); no data leaves the machine.
-  A built-in runtime may follow once the feature has proved useful.
+* Rename the inputs and outputs of individual blocks: double-click a pin label. The name becomes the module's port
+  (or the wire an output drives); two unconnected inputs may share a name to become one shared port.
+* **✦ Ask**, a learning assistant: ask about your circuit, Verilog or the EDA steps. It runs a small open-source model
+  (Qwen2.5-Coder 1.5B, about 1 GB) on your own computer through [Ollama](https://ollama.com), installed separately;
+  nothing you type leaves the machine. A built-in runtime may follow once the feature has proved useful.
+* Designs built from saved designs (hierarchy) now generate valid Verilog, and the waveform shows your signal names.
+
+**v2.0.3**
+
+* Supported Electron (45) and patched dependencies (see *Security notes*).
+
+**Next**
+
 * Promo video: soft background music, a Yosys synthesis run, and a bigger module built from smaller custom modules.
 
 **Later**
@@ -65,7 +73,8 @@ Everything runs on your computer. Projects are ordinary files in your user folde
 │   ├── site/               # the static website (index.html, screenshots, promo video)
 │   ├── capture/            # capture.js: screenshots of the real app
 │   └── video/              # record.js: records the promo video from the real app
-├── prev_iter/              # older prototype iterations (reference only)
+├── prev_iter/              # older prototypes, reference only (not built; their package files were removed so
+│                           #   Dependabot stops flagging them; restore from git history to run one)
 └── verilog-ide/            # the application
     ├── src/                # React UI (canvas, panels, Verilog/testbench generation, VCD viewer)
     ├── server/             # tool runners shared by the desktop app and the Docker server
@@ -180,8 +189,9 @@ Releases go to the repository's GitHub **Releases** page as a draft that you rev
 4. On GitHub, open **Releases**, check the draft and its files, then click **Publish release**.
 
 The tag must match the version (`v` + `version`), or the release job stops.
-Create releases by pushing the tag as above. If you start one on GitHub's *Draft a new release* page instead, the
-workflow attaches the installers to that release rather than making a second one.
+Always create a release by pushing the tag as above. A release (or tag) made on GitHub's *Draft a new release* page
+does not start the workflow, so it stays empty, and if it is published it becomes "latest" and the website's download
+buttons break. If that happens, delete that release and its tag, then push the tag from your clone.
 
 The website's download buttons link to `releases/latest/download/<file>`, so publishing a release updates them; the
 installer names carry no version number for that reason.
