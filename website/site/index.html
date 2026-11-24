@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VerilogBlocks IDE: draw a circuit, get Verilog, simulate and analyse it</title>
+<meta name="description" content="A free desktop app for learning digital and ASIC design: drag real SkyWater SKY130 cells onto a canvas, wire them, and get Verilog, simulation, synthesis, timing and fault analysis. Yosys and Icarus Verilog are included.">
+<meta property="og:title" content="VerilogBlocks IDE">
+<meta property="og:description" content="Draw a circuit from real standard cells. Get Verilog, simulation, synthesis, timing and fault coverage, all in one desktop app.">
+<meta property="og:image" content="assets/shots/canvas.jpg">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='none' stroke='%233b82f6' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b27; --line: #1e2733; --text: #e2e8f0; --muted: #94a3b8; --faint: #64748b;
+    --blue: #3b82f6; --green: #4ade80; --purple: #a78bfa; --cyan: #38bdf8; --amber: #fbbf24; --orange: #fb923c;
+    --mono: 'JetBrains Mono', ui-monospace, monospace; --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 var(--sans); }
+  a { color: var(--cyan); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 6px; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  code, .mono { font-family: var(--mono); font-size: .88em; }
+  code { background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; background: rgba(13,17,23,.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--cyan); font: 600 18px var(--mono); text-decoration: none; }
+  nav ul { display: flex; gap: 22px; list-style: none; margin: 0 0 0 auto; padding: 0; }
+  nav ul a { color: var(--muted); text-decoration: none; font-size: 15px; }
+  nav ul a:hover { color: var(--text); }
+  @media (max-width: 640px) { nav ul li.opt { display: none; } }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font: 600 16px var(--sans);
+         text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn:hover { border-color: var(--faint); }
+
+  /* hero */
+  header.hero { padding: 72px 0 40px; text-align: center; }
+  .eyebrow { color: var(--green); font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.08; margin: 14px auto 18px; max-width: 16ch; letter-spacing: -.02em; }
+  .lede { color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); max-width: 62ch; margin: 0 auto 30px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .cta-note { color: var(--faint); font-size: 14px; margin-top: 12px; }
+  .shot { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55); background: var(--panel); }
+  .hero .shot { margin-top: 48px; }
+
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(28px, 4vw, 38px); margin: 0 0 12px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); max-width: 64ch; margin: 0 0 40px; }
+
+  /* video */
+  .video { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; color: var(--muted);
+           background: radial-gradient(ellipse at center, #1a2333 0%, var(--panel) 70%); }
+  .video .play { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--faint); display: grid; place-items: center; margin: 0 auto 14px; }
+  .video .play::after { content: ''; border-left: 22px solid var(--faint); border-top: 13px solid transparent; border-bottom: 13px solid transparent; margin-left: 6px; }
+
+  /* steps */
+  .step { display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: center; margin-bottom: 64px; }
+  .step:last-child { margin-bottom: 0; }
+  .step:nth-child(even) .text { order: 2; }
+  .num { font: 600 14px var(--mono); color: var(--blue); }
+  .step h3 { font-size: 24px; margin: 6px 0 10px; }
+  .step p { color: var(--muted); margin: 0 0 10px; }
+  @media (max-width: 820px) { .step { grid-template-columns: 1fr; gap: 20px; } .step:nth-child(even) .text { order: 0; } }
+
+  /* feature grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+  /* downloads */
+  .dl { display: flex; flex-direction: column; gap: 14px; }
+  .dl .os { font-size: 20px; font-weight: 700; }
+  .dl .req { color: var(--faint); font-size: 14px; }
+  .dl .btn { justify-content: center; }
+  .dl .alt { font-size: 14px; color: var(--muted); }
+  .dl.here { border-color: var(--blue); }
+  .dl details { font-size: 14px; color: var(--muted); }
+  .dl summary { cursor: pointer; color: var(--text); }
+  .source { margin-top: 28px; color: var(--muted); font-size: 15px; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--faint); font-size: 14px; }
+  footer .wrap { display: flex; gap: 24px; justify-content: space-between; flex-wrap: wrap; }
+  footer p { margin: 0 0 6px; max-width: 70ch; }
+</style>
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top"><span aria-hidden="true">⬡</span> VBiDE</a>
+    <ul>
+      <li class="opt"><a href="#video">Video</a></li>
+      <li class="opt"><a href="#how">How it works</a></li>
+      <li class="opt"><a href="#features">Features</a></li>
+      <li><a href="#download">Download</a></li>
+      <li><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow">Free · open source · macOS, Windows, Linux</div>
+    <h1>Draw a circuit. Get real Verilog.</h1>
+    <p class="lede">VerilogBlocks IDE is a desktop app for learning digital and ASIC design. Drag real SkyWater SKY130
+      standard cells onto a canvas and wire them up. The app writes the Verilog, simulates it with Icarus Verilog,
+      synthesises it with Yosys, and reports timing and fault coverage.</p>
+    <div class="cta">
+      <a class="btn primary" id="hero-download" href="#download">Download</a>
+      <a class="btn" href="#how">See how it works</a>
+    </div>
+    <p class="cta-note">Yosys and Icarus Verilog are included. Nothing else to install.</p>
+    <div class="shot"><img src="assets/shots/canvas.jpg" width="1600" height="883"
+      alt="The VerilogBlocks IDE canvas: a full adder built from two XOR, two AND and one OR SKY130 cells, with labelled wires between them and the cell library on the left."></div>
+  </div>
+</header>
+
+<section id="video">
+  <div class="wrap">
+    <h2>See it in two minutes</h2>
+    <p class="sub">From an empty canvas to a simulated, analysed circuit.</p>
+    <!-- Replace this block with <video controls poster="assets/shots/canvas.jpg" src="assets/vbide-promo.mp4"> when the video is ready -->
+    <div class="shot video" role="img" aria-label="Promotional video placeholder">
+      <div><div class="play" aria-hidden="true"></div>The video is on its way.</div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">One design, start to finish. Every picture below is a screenshot of the app working on the same 1-bit full adder.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="text">
+          <div class="num">01</div>
+          <h3>Pick a process</h3>
+          <p>Start a project and choose a PDK: SkyWater SKY130 or GlobalFoundries GF180MCU. The cell library on the left
+            then holds that process's real standard cells, with their ports and typical delays.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/new-project.jpg" width="1600" height="883" loading="lazy"
+          alt="The New Project dialog with a project name field and a list of PDKs: SkyWater SKY130, GlobalFoundries GF180MCU, IHP SG13G2 and ASAP7."></div>
+      </div>
+
+      <div class="step">
+        <div class="text">
+          <div class="num">02</div>
+          <h3>Draw the circuit</h3>
+          <p>Drag cells onto the canvas and connect output pins to input pins. Each wire is named after the pin that drives it.
+            The app stops you connecting pins of different widths or giving an input two drivers.</p>
+          <p>Undo, redo, copy and paste work the way you expect.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/canvas.jpg" width="1600" height="883" loading="lazy"
+          alt="The full adder on the canvas: XOR, AND and OR cells with wires named xor_ab_X and and_cin_X."></div>
+      </div>
+
+      <div class="step">
+        <div class="text">
+          <div class="num">03</div>
+          <h3>Read the Verilog</h3>
+          <p>The structural Verilog updates as you draw. Unconnected pins become the module's ports, and each cell
+            becomes an assignment you can read line by line. Copy it or download <code>top.v</code>.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/verilog.jpg" width="1600" height="883" loading="lazy"
+          alt="The canvas with the Verilog panel open on the right, showing module top with its input and output wires and one assign statement per cell."></div>
+      </div>
+
+      <div class="step">
+        <div class="text">
+          <div class="num">04</div>
+          <h3>Simulate it</h3>
+          <p>Choose a stimulus for each input: a constant, a clock, a sequence or random values. Press
+            <span class="mono">▶ iverilog</span> and the app writes the testbench, runs Icarus Verilog and opens the waveform.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/testbench.jpg" width="1600" height="883" loading="lazy"
+          alt="The testbench panel listing each input with constant, clock, sequence and random options; all are set to random with 8 steps of 10 ns."></div>
+      </div>
+
+      <div class="step">
+        <div class="text">
+          <div class="num">05</div>
+          <h3>Check its timing</h3>
+          <p>Static timing analysis uses each cell's delay to find the critical path, the slack and the maximum clock
+            frequency. Cells on the canvas are coloured by their slack.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/sta.jpg" width="1600" height="883" loading="lazy"
+          alt="The timing panel for a 10 ns clock: critical slack 9.42 ns, no violations, and a three-stage critical path through xor_ab, and_cin and or_cout. Each cell shows its slack."></div>
+      </div>
+
+      <div class="step">
+        <div class="text">
+          <div class="num">06</div>
+          <h3>Find out if it can be tested</h3>
+          <p>ATPG (automatic test pattern generation) asks: if any wire were stuck at 0 or 1, is there an input pattern that would show it?
+            Yosys turns the design into gates, and atalanta finds the patterns and reports the fault coverage.</p>
+        </div>
+        <div class="shot"><img src="assets/shots/atpg.jpg" width="1600" height="883" loading="lazy"
+          alt="The ATPG results: 100.0% fault coverage, 20 of 20 faults detected with 7 test vectors."></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>What's inside</h2>
+    <p class="sub">Built for classrooms and self-study, using the same open-source tools that real open ASIC flows use.</p>
+    <div class="grid">
+      <div class="card"><h3><span class="dot" style="background:var(--green)"></span>Real standard cells</h3>
+        <p>SKY130 and GF180MCU cell libraries, with their pins, logic and typical delays.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--purple)"></span>Yosys synthesis</h3>
+        <p>Maps your design onto the PDK's Liberty cells and reports which cells were used and the chip area.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--green)"></span>Icarus Verilog simulation</h3>
+        <p>Generated testbench, one-click run and a built-in waveform viewer.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--cyan)"></span>Static timing</h3>
+        <p>Critical path, slack and maximum frequency, shown on the canvas.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--amber)"></span>Fault coverage (ATPG)</h3>
+        <p>Stuck-at-0 and stuck-at-1 faults, test vectors and a coverage figure.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--blue)"></span>Hierarchy</h3>
+        <p>Save a design as a reusable block and place it inside bigger designs.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--orange)"></span>Works offline</h3>
+        <p>Everything runs on your computer. Projects are ordinary files in your user folder.</p></div>
+      <div class="card"><h3><span class="dot" style="background:var(--muted)"></span>Open source</h3>
+        <p>MIT-licensed, on GitHub. A Docker version runs it in the browser for labs and servers.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>Download</h2>
+    <p class="sub">Free for everyone. Pick your system below. Older versions and release notes are on the
+      <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases">Releases page</a>.</p>
+        <div class="grid">
+      <div class="card dl" data-os="mac">
+        <div class="os">macOS</div>
+        <div class="req">Apple silicon (M1 or newer)</div>
+        <a class="btn primary" data-asset="dmg" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-mac-arm64.dmg">Download .dmg</a>
+        <a class="alt" data-asset="maczip" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-mac-arm64.zip">or the .zip</a>
+        <details><summary>First launch</summary>
+          <p>Open the .dmg and drag the app to Applications. The app isn't signed by Apple yet, so macOS may say it is
+            "damaged". Run this once in Terminal, then open the app normally:</p>
+          <p><code>xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"</code></p>
+        </details>
+      </div>
+      <div class="card dl" data-os="win">
+        <div class="os">Windows</div>
+        <div class="req">Windows 10 or 11, 64-bit</div>
+        <a class="btn primary" data-asset="exe" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-Setup-x64.exe">Download installer</a>
+        <a class="alt" data-asset="winzip" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-win-x64.zip">or the portable .zip</a>
+        <details><summary>First launch</summary>
+          <p>The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC".
+            Click <b>More info</b>, then <b>Run anyway</b>.</p>
+        </details>
+      </div>
+      <div class="card dl" data-os="linux">
+        <div class="os">Linux</div>
+        <div class="req">64-bit x86 (most PCs)</div>
+        <a class="btn primary" data-asset="appimage" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-linux-x86_64.AppImage">Download AppImage</a>
+        <details><summary>First launch</summary>
+          <p>Make the file executable, then run it:</p>
+          <p><code>chmod +x VerilogBlocks*.AppImage</code></p>
+        </details>
+      </div>
+    </div>
+    <p class="source">Prefer the browser? Run the Docker version, or build it from source:
+      see the <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE#readme">README</a>.
+      Fault coverage (ATPG) needs <a href="https://github.com/hsluoyz/Atalanta">atalanta</a>, which you install separately
+      because its licence only allows teaching and research use.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p><b style="color:var(--text)">VerilogBlocks IDE</b> · MIT licence · © 2026 Rohit L</p>
+      <p>Includes unmodified Yosys (ISC licence) and Icarus Verilog (GPL-2.0) from OSS CAD Suite. Each runs as a separate program.
+        Licence texts and source links come with the app.</p>
+    </div>
+    <div><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">Source on GitHub</a> ·
+      <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/issues">Report a problem</a></div>
+  </div>
+</footer>
+
+<script>
+// Highlight the visitor's system and aim the hero button at its installer. The download links are fixed URLs
+// (releases/latest/download/<file>): no API call, so no rate limit, and they work without JavaScript.
+(() => {
+  const p = (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase();
+  const phone = /android|iphone|ipad/i.test(navigator.userAgent);      // no desktop build to offer
+  const os = phone ? null : p.includes('mac') ? 'mac' : p.includes('win') ? 'win' : p.includes('linux') ? 'linux' : null;
+  if (!os) return;
+  document.querySelector(`.dl[data-os="${os}"]`).classList.add('here');
+  const hero = document.getElementById('hero-download');
+  hero.href = document.querySelector(`[data-asset="${{ mac: 'dmg', win: 'exe', linux: 'appimage' }[os]}"]`).href;
+  hero.textContent = `Download for ${{ mac: 'macOS', win: 'Windows', linux: 'Linux' }[os]}`;
+})();
+</script>
+</body>
+</html>
