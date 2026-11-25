@@ -316,7 +316,9 @@ function verify(target, out) {
     fs.writeFileSync(path.join(dir, 'prop.sv'), 'module prop(input a, b, output y); assign y = a & b; always @* assert (y == (a & b)); endmodule\n');
     fs.writeFileSync(path.join(dir, 'check.sby'), '[options]\nmode prove\n[engines]\nsmtbmc yices\n[script]\nread -formal prop.sv\nprep -top prop\n[files]\nprop.sv\n');
     const py = win ? path.join(out, 'lib', 'python3.exe') : tool('tabbypy3');
-    const sby = win ? sh(py, [path.join(bin, 'sby-script.py'), '-f', 'check.sby'], { ...o, env: { ...env, PATH: [bin, path.join(out, 'lib'), ...sys].join(path.delimiter) } })
+    // (Windows: yosys-smtbmc through our Python, quoted, as server/formalRunner.js does; its launcher breaks on spaces)
+    const sby = win ? sh(py, [path.join(bin, 'sby-script.py'), '--smtbmc', `"${py}" "${path.join(bin, 'yosys-smtbmc-script.py')}"`, '-f', 'check.sby'],
+                         { ...o, env: { ...env, PATH: [bin, path.join(out, 'lib'), ...sys].join(path.delimiter) } })
                     : sh(tool('sby'), ['-f', 'check.sby'], o);
     if (!/DONE \(PASS/.test(sby)) die('SymbiYosys did not prove a trivial property:\n' + sby.slice(-2000));
     if (!win) {
