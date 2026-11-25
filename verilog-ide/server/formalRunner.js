@@ -12,8 +12,11 @@ const MODES = new Set(['prove', 'bmc']);
 function sbyCommand() {
   const py = process.env.VBIDE_PYTHON;
   if (process.platform === 'win32' && py) {
-    const script = path.join(path.dirname(path.dirname(py)), 'bin', 'sby-script.py');   // tools/lib/python3.exe -> tools/bin/
-    if (fs.existsSync(script)) return [py, [script]];
+    const bin = path.join(path.dirname(path.dirname(py)), 'bin');            // tools/lib/python3.exe -> tools/bin/
+    const script = path.join(bin, 'sby-script.py');
+    // sby starts yosys-smtbmc through cmd.exe; its .exe launcher starts python3 without quoting the path, which fails
+    // when the app is installed under a folder with a space. So tell sby to run the script with our Python, quoted.
+    if (fs.existsSync(script)) return [py, [script, '--smtbmc', `"${py}" "${path.join(bin, 'yosys-smtbmc-script.py')}"`]];
   }
   return ['sby', []];
 }
