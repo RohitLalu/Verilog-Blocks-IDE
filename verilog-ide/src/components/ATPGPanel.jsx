@@ -14,7 +14,7 @@ import useStore from '../store/graphStore.js';
 
 export default function ATPGPanel() {
   const { nodes, generatedVerilog, projectName, atpgResult, setAtpgResult,
-          atpgRunning, setAtpgRunning, pushNotification, synthesisOutput } = useStore();
+          atpgRunning, setAtpgRunning, pushNotification, synthesisOutput, setShowTools } = useStore();
 
   const [tab,        setTab]        = useState('run');
   const [showFaults, setShowFaults] = useState('undetected'); // 'detected' | 'undetected' | 'redundant'
@@ -155,6 +155,10 @@ export default function ATPGPanel() {
                   margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {atpgResult.output?.slice(0, 400)}
                 </pre>
+                {/atalanta not found/.test(atpgResult.output || '') &&
+                  <button onClick={() => setShowTools(true)} style={{ marginTop: 10, background: '#1c1508', border: '1px solid #92400e',
+                    color: '#fbbf24', borderRadius: 6, fontSize: 11.5, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    How to install atalanta</button>}
               </div>
             )}
           </div>

@@ -38,14 +38,14 @@ test('a data location inside an .asar archive is refused up front', () => {
 
 test('tool PATH: bundled tools first, the user\'s PATH next, Homebrew prefixes appended', () => {
   const p = toolPath({ platform: 'darwin', envPath: '/usr/bin:/bin:/usr/sbin:/sbin', resourcesPath: '/Apps/V.app/Contents/Resources', packaged: true });
-  assert.deepEqual(p.split(':'), [path.join('/Apps/V.app/Contents/Resources', 'tools', 'bin'), '/usr/bin', '/bin', '/usr/sbin', '/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin']);
+  assert.deepEqual(p.split(':'), [path.join('/Apps/V.app/Contents/Resources', 'tools', 'bin'), '/usr/bin', '/bin', '/usr/sbin', '/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin', path.join(require('os').homedir(), '.local', 'bin')]);
 });
 
 test('tool PATH: unpackaged runs add no bundled directory; existing entries keep their order and are not duplicated', () => {
   const p = toolPath({ platform: 'darwin', envPath: '/usr/local/bin:/usr/bin', resourcesPath: '/x', packaged: false }).split(':');
   assert.ok(!p.some(d => d.includes('tools')));
   assert.deepEqual(p.slice(0, 2), ['/usr/local/bin', '/usr/bin']); assert.equal(p.filter(d => d === '/usr/local/bin').length, 1);
-  assert.deepEqual(toolPath({ platform: 'linux', envPath: '/usr/bin' }).split(':'), ['/usr/bin', '/usr/local/bin']);
+  assert.deepEqual(toolPath({ platform: 'linux', envPath: '/usr/bin' }).split(':'), ['/usr/bin', '/usr/local/bin', path.join(require('os').homedir(), '.local', 'bin')]);
 });
 
 test('tool PATH on Windows uses ; and adds nothing', () => {

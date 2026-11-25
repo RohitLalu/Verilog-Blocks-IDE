@@ -193,6 +193,7 @@ const useStore=create((set,get)=>({
   showHierarchyExporter:false,setShowHierarchyExporter:(v)=>set({showHierarchyExporter:v}),
   showCustomBlockBuilder:false,setShowCustomBlockBuilder:(v)=>set({showCustomBlockBuilder:v}),
   showProjectBrowser:false,setShowProjectBrowser:(v)=>set({showProjectBrowser:v}),
+  showTools:false,setShowTools:(v)=>set({showTools:v}),
 
   customBlockDraft:{id:'',label:'',symbol:'',module:'',color:'#a78bfa',category:'custom',description:'',tutorial:'',verilogCode:'',ports:{inputs:[{name:'A',width:1}],outputs:[{name:'X',width:1}]}},
   setCustomBlockDraft:(d)=>set({customBlockDraft:{...get().customBlockDraft,...d}}),

@@ -6,6 +6,7 @@ export default function BlockPanel(){
   const setTB=useStore(s=>s.setTutorialBlock),setShow=useStore(s=>s.setShowTutorial);
   const setCB=useStore(s=>s.setShowCustomBlockBuilder),setHE=useStore(s=>s.setShowHierarchyExporter);
   const setPB=useStore(s=>s.setShowProjectBrowser),selectedPDK=useStore(s=>s.selectedPDK);
+  const setShowTools=useStore(s=>s.setShowTools);
   const[search,setSearch]=useState('');
   const[expanded,setExpanded]=useState({'combinational/gates':true,'sequential/flip_flops':true});
   const allBlocks=useMemo(()=>[...cellsManifest,...userBlocks],[cellsManifest,userBlocks]);
@@ -59,6 +60,7 @@ export default function BlockPanel(){
         <button onClick={()=>setCB(true)} style={aBtn('#a78bfa')}>✦ New Custom Block</button>
         <button onClick={()=>setHE(true)}  style={aBtn('#818cf8')}>⬡ Export as Hierarchy</button>
         <button onClick={()=>setPB(true)}  style={aBtn('#475569')}>📂 Open Project</button>
+        <button onClick={()=>setShowTools(true)} style={aBtn('#475569')}>⚙ Tools</button>
         <div style={{color:'#1e2733',fontSize:9,textAlign:'center',marginTop:2,fontFamily:"'JetBrains Mono',monospace"}}>drag → workspace</div>
       </div>
     </div>
