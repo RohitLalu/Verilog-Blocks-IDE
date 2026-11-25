@@ -19,3 +19,20 @@ future updates:
 bring complete librelane workflow but gui.
 agentic help for chip design with automated decision making once requirements are correctly understood
 addition of gds viewer like https://gds-viewer.tinytapeout.com
+
+
+
+
+issues to resolve in gui section of ide:
+1. undo and redo features
+2. option to delete connection/link once made 
+3. block from connecting output and input of the same logic gate of combinational logic.
+4. option to reorganise different windows of sta/atpg/verilog in one frame like in vivado
+5. ability to look at exactly what test vectors were used in atpg without dowloading them
+6. integrated UVM capabilities using cocotb 
+
+
+AI agent suggestion:
+1. when confused with multiple designs, it must correctly advice why specific designs are more helpful than the other or more friendly towards synthesis nd testing section
+2. DFT and system verilog based UVM testing suggestions are really helpful and can be introduced to user once the testing phase starts (ie after simulation and sta)
+3. talk about recommended flow order (design, simulation, timing check, test vectors, formal verification)
