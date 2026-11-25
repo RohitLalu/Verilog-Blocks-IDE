@@ -1,6 +1,7 @@
 // VerilogPanel
 import React,{useState}from'react';
 import useStore from'../store/graphStore.js';
+import ExplainButton from'./ExplainButton.jsx';
 const KW=['module','endmodule','input','output','inout','wire','reg','assign','always','posedge','negedge','if','else','begin','end','case','endcase','parameter','localparam','timescale'];
 function HL({code}){return<>{code.split('\n').map((l,i)=>{if(l.trim().startsWith('//'))return<span key={i} style={{color:'#1e3a2e'}}>{l}{'\n'}</span>;if(l.trim().startsWith('`'))return<span key={i} style={{color:'#4c1d95'}}>{l}{'\n'}</span>;return<span key={i}>{l.split(/(\b\w+\b|'[01xzbhd]+|"[^"]*"|#\d+\.?\d*)/).map((t,j)=>KW.includes(t)?<span key={j} style={{color:'#60a5fa'}}>{t}</span>:/^\d[\d.'_]*$/.test(t)||/^'\d*[bdho]/i.test(t)?<span key={j} style={{color:'#f59e0b'}}>{t}</span>:t)}{'\n'}</span>;})}</>;}
 export function VerilogPanel(){
@@ -35,6 +36,7 @@ export function SynthesisPanel(){
       {running&&<span style={{color:'#7c3aed',fontSize:10,animation:'pulse 1s infinite'}}>running…</span>}
       {isDone&&!running&&<span style={{color:'#4ade80',fontSize:10}}>✓ done</span>}
       {isErr&&<span style={{color:'#f87171',fontSize:10}}>✗ error</span>}
+      {out&&!running&&<span style={{marginLeft:'auto'}}><ExplainButton prompt="Explain my Yosys synthesis result: which standard cells it chose, the area, and any warnings or errors and how to fix them."/></span>}
     </div>
     {errors.length>0&&<div style={{borderBottom:'1px solid #1a0505',background:'#0d0505'}}>{errors.map((e,i)=><div key={i} style={{color:'#f87171',fontSize:11,padding:'5px 14px'}}>⚠ {e.message||e}</div>)}</div>}
     {stats&&<div style={{padding:'10px 14px',borderBottom:'1px solid #1e2733',background:'#0a0e18'}}>

@@ -27,7 +27,22 @@ const hostTarget = (platform = process.platform, arch = process.arch) => `${{ da
 // ── what to take from the suite (paths relative to its top folder) ──────────────────────────────────────────────
 // `keep`: always copied. `libs`: candidate shared libraries; only the ones the binaries load are copied.
 // `binaries`: the files whose shared-library dependencies are walked (iverilog's .vpi/.tgt plug-ins load libraries too).
-const BINARIES = /^libexec\/[^/]+$|^lib\/ivl\/[^/]+\.(vpi|tgt)$/;
+const BINARIES = /^libexec\/[^/]+$|^lib\/ivl\/[^/]+\.(vpi|tgt)$|^lib\/python3\.11\/lib-dynload\/[^/]+\.so$|^lib\/python3\.11\/site-packages\/cocotb[^/]*\.egg\/.*\.(so|dylib|vpl)$/;
+
+// Verification tools (macOS, Linux): Python 3.11 with cocotb (pyuvm is added from PyPI), SymbiYosys with the yices solver
+// (the app's .sby jobs use smtbmc + yices; z3 would add 25-50 MB unused). The bin/ wrappers start them with the suite's Python.
+const VERIFY_KEEP = [
+  /^bin\/(tabbypy3|sby|yosys-smtbmc|yices-smt2)$/, /^libexec\/(python3\.11|sby|yosys-smtbmc|yices-smt2)$/,
+  /^lib\/python3\.11\//, /^share\/yosys\/python3\//,
+  /^license\/LICENSE\.(python3|cocotb|sby|yices)$/,
+];
+// Parts of the suite's Python that the app never uses: test suites, GUI toolkits, the static library, other packages
+// (site-packages keeps cocotb and find_libpython for cocotb, and click for SymbiYosys)
+const DROP = [
+  /^lib\/python3\.11\/(test|idlelib|tkinter|turtledemo|ensurepip|lib2to3|config-3\.11[^/]*)\//, /\/__pycache__\//,
+  /^lib\/python3\.11\/site-packages\/(?!cocotb|find_libpython|click)/, /\/tests?\/.*\.py$/,
+  /^lib\/ivl\/vhdlpp/,                 // VHDL front end: the app writes Verilog only
+];
 const RULES = {
   'linux-x64': {
     keep: [
@@ -36,8 +51,9 @@ const RULES = {
       /^lib\/ivl\//, /^lib\/tcl8\.6\//, /^share\/yosys\/[^/]+$/, /^share\/yosys\/choices\//,
       /^lib\/ld-linux-x86-64\.so\.2$/,
       /^lib\/yosys-abc$/,             // symlink to ../bin/yosys-abc: Yosys looks for ABC next to itself, and under the suite's loader that is lib/
-      /^license\/LICENSE\.(yosys|iverilog)$/,
+      /^license\/LICENSE\.(yosys|iverilog)$/, ...VERIFY_KEEP,
     ],
+    drop: DROP,
     libs: /^lib\/[^/]+\.so(\.[\d.]+)?$/,
     binaries: BINARIES,
   },
@@ -46,8 +62,9 @@ const RULES = {
       /^bin\/(yosys|yosys-abc|iverilog|vvp)$/,
       /^libexec\/(yosys|yosys-abc|iverilog|ivl|ivlpp|vvp|realpath)$/,   // the bin/ wrappers resolve paths with libexec/realpath
       /^lib\/ivl\//, /^share\/yosys\/[^/]+$/, /^share\/yosys\/choices\//,
-      /^license\/LICENSE\.(yosys|iverilog)$/,
+      /^license\/LICENSE\.(yosys|iverilog)$/, ...VERIFY_KEEP,
     ],
+    drop: DROP,
     libs: /^lib\/[^/]+\.dylib$/,
     binaries: BINARIES,
   },  'win-x64': {
@@ -55,14 +72,21 @@ const RULES = {
       /^bin\/(yosys|yosys-abc|iverilog|vvp)\.exe$/,
       /^lib\/ivl\//, /^share\/yosys\/[^/]+$/, /^share\/yosys\/choices\//,
       /^license\/LICENSE\.(yosys|iverilog)$/,
+      // SymbiYosys and its solvers; the suite's Windows Python (no cocotb there: it is a MinGW build) runs sby's script
+      // sby calls yosys-smtbmc as a program: the .exe launchers run the -script.py next to them with python3 from PATH
+      /^bin\/(yices-smt2|sby|yosys-smtbmc)\.exe$/i, /^bin\/(sby|yosys-smtbmc)-script\.py$/, /^lib\/python3\.exe$/i,
+      /^lib\/python3\.11\//, /^share\/yosys\/python3\//, /^license\/LICENSE\.(python3|sby|yices)$/,
     ],
+    drop: DROP,
     libs: /^(bin|lib)\/[^/]+\.dll$/i,
     // Windows looks next to the program before PATH, so each DLL goes beside the programs that load it (bin/ for the tools
     // and the .vpi plug-ins vvp loads, lib/ivl/ for ivl.exe and its .tgt plug-ins). Then a different MinGW runtime on PATH
     // (Git Bash, MSYS2, Strawberry Perl) can't be picked up instead: that made yosys fail to start in CI.
     // folder -> the files whose imports must resolve there (vvp in bin/ loads the .vpi plug-ins; ivl.exe loads the .tgt)
-    dllDirs: { bin: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.vpi$/i, 'lib/ivl': /^lib\/ivl\/[^/]+\.(exe|tgt|vpi)$/i },
-    binaries: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.(exe|vpi|tgt)$/i,
+    // lib/: python3.exe and Python's extension modules, which Windows resolves next to python3.exe
+    dllDirs: { bin: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.vpi$/i, 'lib/ivl': /^lib\/ivl\/[^/]+\.(exe|tgt|vpi)$/i,
+               lib: /^lib\/[^/]+\.exe$|^lib\/python3\.11\/lib-dynload\/[^/]+\.dll$/i },
+    binaries: /^bin\/[^/]+\.exe$|^lib\/ivl\/[^/]+\.(exe|vpi|tgt)$|^lib\/[^/]+\.exe$|^lib\/python3\.11\/lib-dynload\/[^/]+\.dll$/i,
   },
 };
 
@@ -101,7 +125,8 @@ async function download(pin, tag) {
 function selectMembers(names, rules) {
   const top = names.find(n => n.includes('/')).split('/')[0];
   const rel = n => n.slice(top.length + 1).replace(/\/$/, '');
-  const picked = names.filter(n => !n.endsWith('/') && (rules.keep.some(r => r.test(rel(n))) || rules.libs.test(rel(n))));
+  const picked = names.filter(n => !n.endsWith('/') && (rules.keep.some(r => r.test(rel(n))) || rules.libs.test(rel(n))) &&
+    !(rules.drop || []).some(r => r.test(rel(n))));
   return { top, picked, rel };
 }
 
@@ -111,6 +136,17 @@ const parseLdList = out => [...out.matchAll(/=>\s+(\S+)\s+\(0x/g)].map(m => m[1]
 // Shared libraries (inside the suite) that the binaries load, transitively
 // "\t@rpath/libffi.8.dylib (compatibility version ...)" lines from `otool -L`
 const parseOtool = out => out.split('\n').slice(1).map(l => l.match(/^\s+(\S.*?) \(compatibility/)).filter(Boolean).map(m => m[1]);
+// ELF (Linux), Mach-O incl. universal (macOS) or PE (Windows) by the first bytes
+function isBinary(file) {
+  const b = Buffer.alloc(4), fd = fs.openSync(file, 'r');
+  try { fs.readSync(fd, b, 0, 4, 0); } finally { fs.closeSync(fd); }
+  const m = b.readUInt32BE(0);
+  return m === 0x7f454c46 || [0xfeedface, 0xfeedfacf, 0xcefaedfe, 0xcffaedfe, 0xcafebabe, 0xbebafeca].includes(m) || b.readUInt16BE(0) === 0x4d5a;
+}
+
+// "path <dir> (offset N)" lines following "cmd LC_RPATH" in `otool -l`
+const parseRpaths = out => { const r = [], l = out.split('\n');
+  l.forEach((x, i) => { if (x.trim() === 'cmd LC_RPATH') { const m = (l[i + 2] || '').match(/^\s*path (.*) \(offset/); if (m) r.push(m[1]); } }); return r; };
 const isSystemLib = n => /^\/(usr\/lib|System)\//.test(n);
 
 // DLL names a Windows PE file imports (normal and delay-load import tables). Read from the file, so it works on any host.
@@ -138,7 +174,8 @@ function parsePeImports(buf) {
 // Shared libraries (inside the suite's lib/) that the binaries load, transitively. Paths are relative to the suite.
 function libraryClosure(target, suite, rules, kept) {
   const libDir = path.join(suite, 'lib'), found = new Set();
-  const bins = kept.filter(r => rules.binaries.test(r) && fs.lstatSync(path.join(suite, r)).isFile());
+  // only real binaries: libexec/ also holds Python scripts (sby, yosys-smtbmc), which have no libraries to walk
+  const bins = kept.filter(r => rules.binaries.test(r) && fs.lstatSync(path.join(suite, r)).isFile() && isBinary(path.join(suite, r)));
   if (target.startsWith('linux')) {
     const ld = path.join(libDir, 'ld-linux-x86-64.so.2');   // the suite's own loader: what the bin/ wrappers run the tools with
     for (const b of bins) {
@@ -150,10 +187,18 @@ function libraryClosure(target, suite, rules, kept) {
     // No loader to ask: walk otool -L. The suite resolves its own libraries through @rpath / @loader_path to lib/.
     const queue = [...bins];
     while (queue.length) {
-      for (const dep of parseOtool(sh('otool', ['-L', path.join(suite, queue.pop())]))) {
-        if (isSystemLib(dep)) continue;
-        const r = 'lib/' + path.basename(dep);
-        if (!fs.existsSync(path.join(suite, r))) die(`${dep} is not a system library and not in the suite's lib/`);
+      const cur = queue.pop(), file = path.join(suite, cur);
+      const self = (sh('otool', ['-D', file]).split('\n')[1] || '').trim();   // a library lists its own install name too
+      const rpaths = parseRpaths(sh('otool', ['-l', file]));
+      for (const dep of parseOtool(sh('otool', ['-L', file]))) {
+        if (isSystemLib(dep) || dep === self) continue;
+        // where macOS would look: @rpath via the file's LC_RPATHs, @loader_path = its folder, then the suite's lib/
+        const dirs = dep.startsWith('@rpath/') ? rpaths : [path.dirname(dep)];
+        const cands = dirs.map(d => path.resolve(path.dirname(file), d.replace(/^@loader_path|^@executable_path/, '.'), path.basename(dep)));
+        const hit = [...cands, path.join(libDir, path.basename(dep))].find(f => f.startsWith(suite + path.sep) && fs.existsSync(f));
+        if (!hit) die(`${dep} (needed by ${cur}) is not a system library and not found in the suite`);
+        if (path.dirname(hit) !== libDir) continue;                            // inside a folder that is kept whole (cocotb)
+        const r = 'lib/' + path.basename(hit);
         if (!found.has(r)) { found.add(r); queue.push(r); }
       }
     }
@@ -207,15 +252,45 @@ function buildAtalanta(target, outBin) {
   return exe;
 }
 
+// pyuvm (UVM in Python, pure Python) from PyPI, pinned and checksummed, unpacked into the bundled Python's site-packages
+async function addPyuvm(out) {
+  const { url, sha256: want, file } = LOCK.pyuvm;
+  const whl = path.join(CACHE, file);
+  if (!fs.existsSync(whl)) {
+    console.log(`downloading ${url}`);
+    const res = await fetch(url);
+    if (!res.ok) die(`download failed: HTTP ${res.status} for ${url}`);
+    await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(whl + '.part'));
+    fs.renameSync(whl + '.part', whl);
+  }
+  const sum = await sha256(whl);
+  if (sum !== want) die(`${file}: sha256 ${sum} does not match tools.lock.json`);
+  sh(path.join(out, 'bin', 'tabbypy3'), ['-m', 'zipfile', '-e', whl, path.join(out, 'lib', 'python3.11', 'site-packages')]);
+}
+
+// The suite's sby and yosys-smtbmc launchers run `exec $release_bindir_abs/tabbypy3 ...` unquoted, which splits at the
+// space of an installed app's path ("VerilogBlocks IDE.app"). Add the quotes; nothing else changes.
+function quoteWrappers(out) {
+  for (const name of ['sby', 'yosys-smtbmc']) {
+    const f = path.join(out, 'bin', name);
+    if (!fs.existsSync(f) || fs.statSync(f).size > 4096) continue;        // only the small launcher scripts
+    const s = fs.readFileSync(f, 'utf8');
+    fs.writeFileSync(f, s.replace(/exec \$release_bindir_abs\/tabbypy3 /g, 'exec "$release_bindir_abs"/tabbypy3 '));
+  }
+}
+
 function writeNotices(out, withAtalanta) {
   const lic = path.join(out, 'license');
   const parts = [
     'Third-party tools bundled with VerilogBlocks IDE. They run as separate programs; they are not linked into the app.',
+    'The bin/sby and bin/yosys-smtbmc launcher scripts get quotes around one path (so they work from a folder with a space).',
     `Yosys and Icarus Verilog are unmodified binaries from OSS CAD Suite ${LOCK.suite.tag} (https://github.com/YosysHQ/oss-cad-suite-build).`,
     `Their source code: https://github.com/YosysHQ/yosys and https://github.com/steveicarus/iverilog; the suite's build scripts and the`,
     `versions used are at https://github.com/YosysHQ/oss-cad-suite-build/releases/tag/${LOCK.suite.tag}.`,
     'The shared libraries next to them come from the same release; their licences are listed in that release.',
   ];
+  parts.push('Python 3.11, cocotb, SymbiYosys and the yices solver are unmodified, from the same OSS CAD Suite release;',
+    `pyuvm ${LOCK.pyuvm.version} (Apache-2.0) is from PyPI (${LOCK.pyuvm.url}); its licence is in lib/python3.11/site-packages/pyuvm-${LOCK.pyuvm.version}.dist-info.`);
   if (withAtalanta) parts.push(`atalanta was built from ${LOCK.atalanta.repo} at commit ${LOCK.atalanta.commit}, with one change in random.cpp`,
     '(time((long*)NULL) -> time(NULL), so it compiles on 64-bit Windows). Its README restricts it to teaching and research use.');
   for (const f of fs.existsSync(lic) ? fs.readdirSync(lic).sort() : []) parts.push(`\n===== ${f} =====\n` + fs.readFileSync(path.join(lic, f), 'latin1'));
@@ -237,6 +312,21 @@ function verify(target, out) {
     if (!/VBIDE-SIM 1/.test(sh(tool('vvp'), ['sim.out'], o))) die('vvp did not print the expected result');
     const ys = sh(tool('yosys'), ['-p', 'read_verilog top.v; synth -top top; abc -g AND,OR,XOR; stat'], o);
     if (!/Executing ABC pass/.test(ys) || !/\$_(AND|OR|XOR|NOT)_/.test(ys)) die('yosys did not map the design through ABC:\n' + ys.slice(-2000));
+    // SymbiYosys: prove a one-gate property (on Windows, sby's script runs on the bundled Python)
+    fs.writeFileSync(path.join(dir, 'prop.sv'), 'module prop(input a, b, output y); assign y = a & b; always @* assert (y == (a & b)); endmodule\n');
+    fs.writeFileSync(path.join(dir, 'check.sby'), '[options]\nmode prove\n[engines]\nsmtbmc yices\n[script]\nread -formal prop.sv\nprep -top prop\n[files]\nprop.sv\n');
+    const py = win ? path.join(out, 'lib', 'python3.exe') : tool('tabbypy3');
+    const sby = win ? sh(py, [path.join(bin, 'sby-script.py'), '-f', 'check.sby'], { ...o, env: { ...env, PATH: [bin, path.join(out, 'lib'), ...sys].join(path.delimiter) } })
+                    : sh(tool('sby'), ['-f', 'check.sby'], o);
+    if (!/DONE \(PASS/.test(sby)) die('SymbiYosys did not prove a trivial property:\n' + sby.slice(-2000));
+    if (!win) {
+      // cocotb + pyuvm on the bundled Python, simulating with the bundled Icarus Verilog
+      fs.writeFileSync(path.join(dir, 'top.v'), 'module top(input a, b, output y); assign y = a & b; endmodule\n');
+      fs.writeFileSync(path.join(dir, 'test_top.py'), 'import cocotb, pyuvm\nfrom cocotb.triggers import Timer\n@cocotb.test()\nasync def t(dut):\n    dut.a.value = 1\n    dut.b.value = 1\n    await Timer(1, "ns")\n    assert int(dut.y.value) == 1\n');
+      fs.writeFileSync(path.join(dir, 'run.py'), 'from cocotb_tools.runner import get_runner\nr = get_runner("icarus")\nr.build(sources=["top.v"], hdl_toplevel="top", timescale=("1ns", "1ps"))\nr.test(hdl_toplevel="top", test_module="test_top")\n');
+      const c = sh(py, ['run.py'], o);
+      if (!/TESTS=1 PASS=1 FAIL=0/.test(c)) die('cocotb did not pass a one-gate test:\n' + c.slice(-2000));
+    }
     if (fs.existsSync(tool('atalanta'))) {
       // atalanta skips the first line of a bench file (the app's converter always writes a comment header there)
       fs.writeFileSync(path.join(dir, 't.bench'), '# verify\nINPUT(a)\nINPUT(b)\nOUTPUT(y)\ny = AND(a, b)\n');
@@ -278,6 +368,8 @@ async function main(argv) {
     fs.rmSync(out, { recursive: true, force: true });
     for (const [from, to] of copies) copyInto(path.join(suite, from), path.join(out, to));
     if (withAtalanta) { if (!onHost) die('atalanta is compiled on the target OS'); buildAtalanta(target, path.join(out, 'bin')); }
+    if (!target.startsWith('win')) await addPyuvm(out);   // needs cocotb, which the Windows suite lacks
+    quoteWrappers(out);
     writeNotices(out, withAtalanta);
     if (!onHost) console.log(`not verified: ${target} can only be run on ${target}`);
     else if (!argv.includes('--no-verify')) verify(target, out);

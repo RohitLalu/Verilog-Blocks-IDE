@@ -1,5 +1,6 @@
 import React,{useState}from'react';
 import useStore from'../store/graphStore.js';
+import ExplainButton from'./ExplainButton.jsx';
 const KW=['module','endmodule','input','output','wire','reg','assign','always','posedge','negedge','if','else','begin','end','case','endcase','parameter','timescale'];
 function VHL({code}){return<>{code.split('\n').map((l,i)=>{if(l.trim().startsWith('//'))return<span key={i} style={{color:'#2d4a2d'}}>{l}{'\n'}</span>;if(l.trim().startsWith('`'))return<span key={i} style={{color:'#4c1d95'}}>{l}{'\n'}</span>;return<span key={i}>{l.split(/(\b\w+\b|'[01xz]|"[^"]*"|#\d+)/).map((t,j)=>KW.includes(t)?<span key={j} style={{color:'#60a5fa'}}>{t}</span>:/^\d+$/.test(t)?<span key={j} style={{color:'#f59e0b'}}>{t}</span>:t)}{'\n'}</span>;})}</>;}
 export default function TutorialPanel(){
@@ -19,7 +20,9 @@ export default function TutorialPanel(){
             <span style={{background:color,color:'#000',fontSize:10,fontWeight:800,padding:'3px 8px',borderRadius:4}}>{b.symbol}</span>
             <span style={{color:'#e2e8f0',fontSize:14,fontWeight:700}}>{b.label}</span>
           </div>
-          <button onClick={()=>setShow(false)} style={{background:'transparent',border:'none',color:'#334155',cursor:'pointer',fontSize:18}}>×</button>
+          <ExplainButton style={{marginRight:6}} label="✦ Ask about this cell"
+            prompt={`Explain the ${b.label} cell${b.cell?` (${b.cell})`:''}: what it does, when I would use it, and how its timing affects a design.`}/>
+                    <button onClick={()=>setShow(false)} style={{background:'transparent',border:'none',color:'#334155',cursor:'pointer',fontSize:18}}>×</button>
         </div>
         {b.cell&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9.5,color:'#1e3a5f',marginBottom:8}}>{b.cell}</div>}
         <div style={{display:'flex'}}>{tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{background:'transparent',border:'none',borderBottom:`2px solid ${tab===t?color:'transparent'}`,color:tab===t?color:'#334155',fontSize:11,fontWeight:tab===t?600:400,padding:'5px 12px 8px',cursor:'pointer',fontFamily:"'Space Grotesk',sans-serif",textTransform:'capitalize'}}>{t}</button>)}</div>

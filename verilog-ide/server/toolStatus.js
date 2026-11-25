@@ -24,7 +24,7 @@ function whichTool(name, { envPath = process.env.PATH || '', platform = process.
 
 // bundledDir: the app's own tools folder (packaged app), to tell bundled copies from ones installed on the system
 function toolStatus({ bundledDir = null, envPath } = {}) {
-  return TOOLS.map(t => {
+  return [...TOOLS.map(t => {
     const p = whichTool(t.name, envPath === undefined ? {} : { envPath });
     let version = null;
     if (p && t.args) {
@@ -32,7 +32,31 @@ function toolStatus({ bundledDir = null, envPath } = {}) {
       version = `${r.stdout || ''}\n${r.stderr || ''}`.split('\n').map(l => l.trim()).find(Boolean) || null;
     }
     return { name: t.name, role: t.role, found: !!p, path: p, version, bundled: !!(p && bundledDir && p.startsWith(bundledDir)) };
-  });
+  }), sbyStatus({ bundledDir, envPath }), cocotbStatus(envPath === undefined ? {} : { envPath })];
 }
 
-module.exports = { toolStatus, whichTool, TOOLS };
+// SymbiYosys (formal verification): on Windows it is a script run by the bundled Python
+function sbyStatus({ bundledDir, envPath }) {
+  const p = whichTool('sby', envPath === undefined ? {} : { envPath });
+  let version = null;
+  if (p) { const r = spawnSync(p, ['--version'], { encoding: 'utf8', timeout: 15000 }); version = (r.stdout || '').trim().split('\n')[0] || null; }
+  return { name: 'sby', role: 'Formal verification (SymbiYosys)', found: !!p, path: p, version, bundled: !!(p && bundledDir && p.startsWith(bundledDir)) };
+}
+
+// cocotb (optional): which Python would run it, and whether cocotb is installed for it
+function cocotbStatus({ envPath } = {}) {
+  const opt = envPath === undefined ? {} : { envPath };
+  const names = process.platform === 'win32' ? ['python', 'py'] : ['python3', 'python'];
+  const bundledPy = process.env.VBIDE_PYTHON;   // the app's own Python (desktop app), used first
+  for (const [name, p] of [...(bundledPy ? [['python', bundledPy]] : []), ...names.map(n => [n, whichTool(n, opt)])]) {
+    if (!p) continue;
+    const r = spawnSync(p, [...(name === 'py' ? ['-3'] : []), '-c',
+      'import sys,cocotb,importlib.metadata as m\ntry: u=m.version("pyuvm")\nexcept Exception: u="-"\nprint(cocotb.__version__, u, sys.version.split()[0])'], { encoding: 'utf8', timeout: 15000 });
+    const [cv, uv, pv] = (r.stdout || '').trim().split(/\s+/);
+    return { name: 'cocotb', role: 'Python testbenches (cocotb, pyuvm)', found: r.status === 0 && !!cv, path: p, bundled: p === bundledPy,
+      version: r.status === 0 && cv ? `cocotb ${cv}${uv && uv !== '-' ? `, pyuvm ${uv}` : ''}, Python ${pv}` : 'Python found; cocotb not installed' };
+  }
+  return { name: 'cocotb', role: 'Python testbenches (cocotb, pyuvm)', found: false, path: null, version: null, bundled: false };
+}
+
+module.exports = { toolStatus, whichTool, TOOLS, cocotbStatus };

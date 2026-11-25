@@ -1,6 +1,6 @@
 {
   "name": "verilog-blocks-ide",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "Drag-and-drop Verilog block diagram editor for open-source ASIC education",
   "repository": "github:RohitLalu/Verilog-Blocks-IDE",
   "main": "electron-main.js",

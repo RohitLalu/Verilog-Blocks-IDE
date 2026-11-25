@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   yosys: { synth: a => ipcRenderer.invoke('yosys:synth', a) },
   sim:   { run:   a => ipcRenderer.invoke('sim:run',     a) },
+  cocotb:{ run:   a => ipcRenderer.invoke('cocotb:run',  a) },
+  formal:{ run:   a => ipcRenderer.invoke('formal:run',  a) },
   atpg:  { run:   a => ipcRenderer.invoke('atpg:run',    a) },
   tools: { status: () => ipcRenderer.invoke('tools:status') },
   dialog:{ openFolder: () => ipcRenderer.invoke('dialog:open-folder') },

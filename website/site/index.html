@@ -13,87 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0d1117; --panel: #161b27; --line: #1e2733; --text: #e2e8f0; --muted: #94a3b8; --faint: #64748b;
-    --blue: #3b82f6; --green: #4ade80; --purple: #a78bfa; --cyan: #38bdf8; --amber: #fbbf24; --orange: #fb923c;
-    --mono: 'JetBrains Mono', ui-monospace, monospace; --sans: 'Space Grotesk', system-ui, sans-serif;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 var(--sans); }
-  a { color: var(--cyan); }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 6px; }
-  img { max-width: 100%; height: auto; display: block; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-  code, .mono { font-family: var(--mono); font-size: .88em; }
-  code { background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
-
-  /* nav */
-  nav { position: sticky; top: 0; z-index: 10; background: rgba(13,17,23,.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
-  .brand { display: flex; align-items: center; gap: 8px; color: var(--cyan); font: 600 18px var(--mono); text-decoration: none; }
-  nav ul { display: flex; gap: 22px; list-style: none; margin: 0 0 0 auto; padding: 0; }
-  nav ul a { color: var(--muted); text-decoration: none; font-size: 15px; }
-  nav ul a:hover { color: var(--text); }
-  @media (max-width: 640px) { nav ul li.opt { display: none; } }
-
-  /* buttons */
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font: 600 16px var(--sans);
-         text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
-  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
-  .btn.primary:hover { background: #2563eb; }
-  .btn:hover { border-color: var(--faint); }
-
-  /* hero */
-  header.hero { padding: 72px 0 40px; text-align: center; }
-  .eyebrow { color: var(--green); font: 600 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
-  h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.08; margin: 14px auto 18px; max-width: 16ch; letter-spacing: -.02em; }
-  .lede { color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); max-width: 62ch; margin: 0 auto 30px; }
-  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .cta-note { color: var(--faint); font-size: 14px; margin-top: 12px; }
-  .shot { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.55); background: var(--panel); }
-  .hero .shot { margin-top: 48px; }
-
-  section { padding: 72px 0; border-top: 1px solid var(--line); }
-  h2 { font-size: clamp(28px, 4vw, 38px); margin: 0 0 12px; letter-spacing: -.01em; }
-  .sub { color: var(--muted); max-width: 64ch; margin: 0 0 40px; }
-
-  /* video */
-  video { display: block; width: 100%; height: auto; background: var(--panel); }
-
-  /* steps */
-  .step { display: grid; grid-template-columns: 1fr 1.6fr; gap: 40px; align-items: center; margin-bottom: 64px; }
-  .step:last-child { margin-bottom: 0; }
-  .step:nth-child(even) .text { order: 2; }
-  .num { font: 600 14px var(--mono); color: var(--blue); }
-  .step h3 { font-size: 24px; margin: 6px 0 10px; }
-  .step p { color: var(--muted); margin: 0 0 10px; }
-  @media (max-width: 820px) { .step { grid-template-columns: 1fr; gap: 20px; } .step:nth-child(even) .text { order: 0; } }
-
-  /* feature grid */
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-  .card h3 { margin: 0 0 8px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
-  .card p { margin: 0; color: var(--muted); font-size: 15px; }
-  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-
-  /* downloads */
-  .dl { display: flex; flex-direction: column; gap: 14px; }
-  .dl .os { font-size: 20px; font-weight: 700; }
-  .dl .req { color: var(--faint); font-size: 14px; }
-  .dl .btn { justify-content: center; }
-  .dl .alt { font-size: 14px; color: var(--muted); }
-  .dl.here { border-color: var(--blue); }
-  .dl details { font-size: 14px; color: var(--muted); }
-  .dl summary { cursor: pointer; color: var(--text); }
-  .source { margin-top: 28px; color: var(--muted); font-size: 15px; }
-
-  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--faint); font-size: 14px; }
-  footer .wrap { display: flex; gap: 24px; justify-content: space-between; flex-wrap: wrap; }
-  footer p { margin: 0 0 6px; max-width: 70ch; }
-</style>
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
 
@@ -101,11 +21,11 @@
   <div class="wrap">
     <a class="brand" href="#top"><span aria-hidden="true">⬡</span> VBiDE</a>
     <ul>
-      <li class="opt"><a href="#video">Video</a></li>
       <li class="opt"><a href="#how">How it works</a></li>
-      <li class="opt"><a href="#features">Features</a></li>
-      <li><a href="#download">Download</a></li>
-      <li><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">GitHub</a></li>
+      <li class="opt"><a href="#assistant">Assistant</a></li>
+      <li><a href="docs/">Docs</a></li>
+      <li><a href="download/">Download</a></li>
+      <li class="opt"><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">GitHub</a></li>
     </ul>
   </div>
 </nav>
@@ -121,7 +41,7 @@
       <a class="btn primary" id="hero-download" href="#download">Download</a>
       <a class="btn" href="#how">See how it works</a>
     </div>
-    <p class="cta-note">Yosys and Icarus Verilog are included. Nothing else to install.</p>
+    <p class="cta-note">Yosys, Icarus Verilog and SymbiYosys are included, and cocotb and pyuvm on macOS and Linux. Nothing else to install.</p>
     <div class="shot"><img src="assets/shots/canvas.jpg" width="1600" height="883"
       alt="The VerilogBlocks IDE canvas: a full adder built from two XOR, two AND and one OR SKY130 cells, with labelled wires between them and the cell library on the left."></div>
   </div>
@@ -215,6 +135,27 @@
   </div>
 </section>
 
+<section id="assistant">
+  <div class="wrap split">
+    <div>
+      <span class="pill">✦ new in 2.1</span>
+      <h2 style="margin-top:12px">A tutor that knows your circuit</h2>
+      <p class="sub" style="margin-bottom:18px">VerilogBlocks IDE has its own learning assistant, <b>vbide-tutor</b>. Ask it anything about digital
+        design, or press <b>✦ Explain</b> next to a result.</p>
+      <ul>
+        <li><b>Sees your work:</b> your cells, your Verilog, and your latest simulation, timing, fault-coverage and Yosys results.</li>
+        <li><b>Explains, step by step:</b> why this is your critical path, what a stuck-at fault is, what a synthesis error means.</li>
+        <li><b>Private:</b> a small open-source model runs on your own computer through <a href="https://ollama.com">Ollama</a>.
+          Nothing you type leaves the machine.</li>
+        <li><b>Always at hand:</b> the chat floats over the canvas, beside whatever panel is open.</li>
+      </ul>
+      <a class="btn" href="docs/#assistant">Set it up in two steps</a>
+    </div>
+    <div class="shot"><img src="assets/shots/assistant.jpg" width="1600" height="883" loading="lazy"
+      alt="The assistant chat open beside the timing panel, offering suggested questions such as 'Why is this my critical path?'. The timing panel shows an Explain button."></div>
+  </div>
+</section>
+
 <section id="features">
   <div class="wrap">
     <h2>What's inside</h2>
@@ -234,6 +175,12 @@
         <p>Save a design as a reusable block and place it inside bigger designs.</p></div>
       <div class="card"><h3><span class="dot" style="background:var(--orange)"></span>Works offline</h3>
         <p>Everything runs on your computer. Projects are ordinary files in your user folder.</p></div>
+      <div class="card"><h3><span class="dot" style="background:#c4b5fd"></span>Formal verification</h3>
+        <p>Write properties; SymbiYosys proves them for every input, or shows a counterexample as a waveform.</p></div>
+      <div class="card"><h3><span class="dot" style="background:#86efac"></span>cocotb &amp; pyuvm</h3>
+        <p>Testbenches in Python, including UVM-style ones, generated for your design and run with one click.</p></div>
+      <div class="card"><h3><span class="dot" style="background:#f472b6"></span>Learning assistant</h3>
+        <p>vbide-tutor explains your circuit and results, privately, on your own computer.</p></div>
       <div class="card"><h3><span class="dot" style="background:var(--muted)"></span>Open source</h3>
         <p>MIT-licensed, on GitHub. A Docker version runs it in the browser for labs and servers.</p></div>
     </div>
@@ -277,10 +224,8 @@
         </details>
       </div>
     </div>
-    <p class="source">Prefer the browser? Run the Docker version, or build it from source:
-      see the <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE#readme">README</a>.
-      Fault coverage (ATPG) needs <a href="https://github.com/hsluoyz/Atalanta">atalanta</a>, which you install separately
-      because its licence only allows teaching and research use.</p>
+    <p class="source"><a href="download/">All downloads: system requirements, what's included, older versions, Docker and
+      building from source →</a></p>
   </div>
 </section>
 
@@ -291,24 +236,12 @@
       <p>Includes unmodified Yosys (ISC licence) and Icarus Verilog (GPL-2.0) from OSS CAD Suite. Each runs as a separate program.
         Licence texts and source links come with the app.</p>
     </div>
-    <div><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">Source on GitHub</a> ·
+    <div><a href="docs/">Documentation</a> · <a href="download/">Downloads</a> ·
+      <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">Source on GitHub</a> ·
       <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/issues">Report a problem</a></div>
   </div>
 </footer>
 
-<script>
-// Highlight the visitor's system and aim the hero button at its installer. The download links are fixed URLs
-// (releases/latest/download/<file>): no API call, so no rate limit, and they work without JavaScript.
-(() => {
-  const p = (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).toLowerCase();
-  const phone = /android|iphone|ipad/i.test(navigator.userAgent);      // no desktop build to offer
-  const os = phone ? null : p.includes('mac') ? 'mac' : p.includes('win') ? 'win' : p.includes('linux') ? 'linux' : null;
-  if (!os) return;
-  document.querySelector(`.dl[data-os="${os}"]`).classList.add('here');
-  const hero = document.getElementById('hero-download');
-  hero.href = document.querySelector(`[data-asset="${{ mac: 'dmg', win: 'exe', linux: 'appimage' }[os]}"]`).href;
-  hero.textContent = `Download for ${{ mac: 'macOS', win: 'Windows', linux: 'Linux' }[os]}`;
-})();
-</script>
+<script src="assets/site.js"></script>
 </body>
 </html>

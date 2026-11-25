@@ -18,7 +18,9 @@ const EXTRA = {
 
 function toolPath({ platform = process.platform, envPath = '', resourcesPath, packaged = false } = {}) {
   const delimiter = platform === 'win32' ? ';' : ':';
-  const bundled = packaged && resourcesPath ? [path.join(resourcesPath, 'tools', 'bin')] : [];
+  // Windows also gets lib/ (after bin/): python3.exe lives there, and SymbiYosys's launchers find Python through PATH.
+  // DLLs still sit next to the programs that load them, so PATH order can't pick up a foreign runtime.
+  const bundled = packaged && resourcesPath ? ['bin', ...(platform === 'win32' ? ['lib'] : [])].map(d => path.join(resourcesPath, 'tools', d)) : [];
   const existing = String(envPath).split(delimiter).filter(Boolean);
   return [...new Set([...bundled, ...existing, ...(EXTRA[platform] || [])])].join(delimiter);
 }

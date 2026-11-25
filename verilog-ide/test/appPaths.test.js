@@ -53,7 +53,8 @@ test('tool PATH on Windows uses ; and adds nothing', () => {
   assert.equal(toolPath({ platform: 'win32', envPath: 'C:\\a;C:\\b' }), 'C:\\a;C:\\b');
 });
 
-test('tool PATH in a packaged Windows app has the bundled bin first (its DLLs sit next to the programs)', () => {
+test('tool PATH in a packaged Windows app has the bundled bin, then lib (Python for SymbiYosys)', () => {
   const r = 'C:\\V\\resources';
-  assert.deepEqual(toolPath({ platform: 'win32', envPath: 'C:\\a', resourcesPath: r, packaged: true }).split(';'), [path.join(r, 'tools', 'bin'), 'C:\\a']);
+  assert.deepEqual(toolPath({ platform: 'win32', envPath: 'C:\\a', resourcesPath: r, packaged: true }).split(';'),
+    [path.join(r, 'tools', 'bin'), path.join(r, 'tools', 'lib'), 'C:\\a']);
 });

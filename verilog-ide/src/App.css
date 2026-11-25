@@ -15,3 +15,6 @@ html,body,#root{width:100%;height:100%;overflow:hidden;background:#090e18;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .react-flow__node{animation:fadeIn .18s ease;}
 .react-flow__handle:hover{transform:translateY(-50%) scale(1.4)!important;}
+
+/* tool panels fill the resizable right frame (their own fixed widths are the defaults, see RightFrame.jsx) */
+.right-frame>div{width:100%!important;flex:1 1 auto!important;border-left:none!important;}

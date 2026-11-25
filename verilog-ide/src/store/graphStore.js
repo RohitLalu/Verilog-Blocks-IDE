@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { addEdge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import { netName, edgeId, normalizeEdges, nextInstanceName, dedupeInstanceNames, checkPinName } from '../lib/netNaming.js';
+import { combinationalLoop } from '../lib/graphChecks.js';
 
 const tryLS=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const setLS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
@@ -38,6 +39,9 @@ const useStore=create((set,get)=>({
     const tp=tgt.data.ports?.inputs?.find(p=>p.name===conn.targetHandle);
     const sw=sp?.width||1,tw=tp?.width||1;
     if(sw!==tw){pushNotification(`Width mismatch: ${src.data.instanceName}.${conn.sourceHandle} is ${sw}-bit, ${tgt.data.instanceName}.${conn.targetHandle} is ${tw}-bit`,'error');return;}
+    // No combinational loops: an output must not reach its own input except through a flip-flop or latch
+    const loop=combinationalLoop(nodes,edges,conn.source,conn.target);
+    if(loop){pushNotification(`That wire would make a combinational loop (${loop.join(' → ')}): a gate's output would feed its own input with no flip-flop in between.`,'error');return;}
     // An input can only have one driver
     if(edges.some(e=>e.target===conn.target&&e.targetHandle===conn.targetHandle)){
       pushNotification(`${tgt.data.instanceName}.${conn.targetHandle} already has a driver`,'warn');return;}
@@ -160,9 +164,18 @@ const useStore=create((set,get)=>({
 
   // STA slack for canvas colouring
   staSlack:{},setStaSlack:(m)=>set({staSlack:m}),clearStaSlack:()=>set({staSlack:{}}),
+  staResult:null,setStaResult:(r)=>set({staResult:r}),   // latest timing run (the assistant explains it)
+  // Learning assistant: a chat that floats over the canvas, open beside any panel. assistantAsk() opens it and sends a question.
+  showAssistant:false,setShowAssistant:(v)=>set({showAssistant:v}),
+  assistantPending:null,assistantAsk:(prompt)=>set({showAssistant:true,assistantPending:{prompt,at:Date.now()}}),
+  clearAssistantPending:()=>set({assistantPending:null}),
 
   // UI
-  activePanel:'blocks',setActivePanel:(p)=>set({activePanel:p}),
+  // Tool panels open as tabs in the right frame; activePanel is the tab in front ('blocks' = none)
+  activePanel:'blocks',openPanels:[],
+  setActivePanel:(p)=>set(s=>({activePanel:p,openPanels:p==='blocks'||s.openPanels.includes(p)?s.openPanels:[...s.openPanels,p]})),
+  closePanel:(p)=>set(s=>{const open=s.openPanels.filter(x=>x!==p);return{openPanels:open,activePanel:s.activePanel===p?(open.at(-1)||'blocks'):s.activePanel};}),
+  rightWidth:tryLS('vbide_right_width',null),setRightWidth:(w)=>{setLS('vbide_right_width',w);set({rightWidth:w});},
   generatedVerilog:'',setGeneratedVerilog:(c)=>set({generatedVerilog:c}),
   synthesisOutput:'',setSynthesisOutput:(o)=>set({synthesisOutput:o}),
   synthesisRunning:false,setSynthesisRunning:(v)=>set({synthesisRunning:v}),
@@ -187,6 +200,9 @@ const useStore=create((set,get)=>({
 
   // ATPG
   atpgResult:null,setAtpgResult:(r)=>set({atpgResult:r}),
+  cocotbCode:'',setCocotbCode:(c)=>set({cocotbCode:c}),cocotbResult:null,setCocotbResult:(r)=>set({cocotbResult:r}),
+  cocotbStyle:'basic',setCocotbStyle:(v)=>set({cocotbStyle:v}),   // 'basic' cocotb test or 'pyuvm' (UVM structure)
+  formalProps:'',setFormalProps:(p)=>set({formalProps:p}),formalResult:null,setFormalResult:(r)=>set({formalResult:r}),
   atpgRunning:false,setAtpgRunning:(v)=>set({atpgRunning:v}),
 
   // Modals / panels

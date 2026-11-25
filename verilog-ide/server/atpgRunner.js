@@ -85,7 +85,9 @@ async function runAtpg({ projDir, outDir, verilog, timeoutMs = DEFAULT_TIMEOUT_M
   }
 
   // 3. atalanta, run in the output folder (it writes <name>.test into its working directory)
-  const at = await run('atalanta', [benchF], { cwd: outDir, timeoutMs });
+  // The bench file by its plain name: atalanta names its pattern file after the path up to the FIRST dot anywhere in it,
+  // so a full path like /Users/first.last/... produced "first.test" instead of "top.test".
+  const at = await run('atalanta', [path.basename(benchF)], { cwd: outDir, timeoutMs });
   if (at.error) return { ok: false, stage: 'atalanta', output: at.error.code === 'ENOENT' ? NOT_FOUND.atalanta : String(at.error) };
   if (at.timedOut) return { ok: false, stage: 'atalanta', output: at.out + `\n[timeout] atalanta killed after ${timeoutMs / 1000}s.` };
 
@@ -94,7 +96,16 @@ async function runAtpg({ projDir, outDir, verilog, timeoutMs = DEFAULT_TIMEOUT_M
     return { ok: false, stage: 'atalanta', output: at.out + '\n\nCould not read a fault-coverage figure from atalanta\'s output.',
              bench: conv.text, warnings: conv.warnings };
   }
-  return { ok: true, stage: 'done', output: at.out, bench: conv.text, warnings: conv.warnings, ...parsed };
+  const testText = exists(testF) ? fs.readFileSync(testF, 'latin1') : '';
+  return { ok: true, stage: 'done', output: at.out, bench: conv.text, warnings: conv.warnings, ...parsed,
+           testFile: testText, patterns: parseTestFile(testText) };
 }
 
-module.exports = { runAtpg, parseAtpgOutput, DEFAULT_TIMEOUT_MS };
+// atalanta's .test file: input and output names, then one line per test pattern, "n: <input bits> <expected outputs>"
+function parseTestFile(text) {
+  const after = h => { const m = text.match(new RegExp(`\\* ${h}\\s*:\\s*\\n([^*]*)`)); return m ? m[1].split(/\s+/).filter(Boolean) : []; };
+  const vectors = [...text.matchAll(/^\s*(\d+):\s*([01xX]+)\s+([01xX]*)\s*$/gm)].map(m => ({ n: +m[1], inputs: m[2], outputs: m[3] }));
+  return { inputs: after('Primary inputs'), outputs: after('Primary outputs'), vectors };
+}
+
+module.exports = { runAtpg, parseAtpgOutput, parseTestFile, DEFAULT_TIMEOUT_MS };

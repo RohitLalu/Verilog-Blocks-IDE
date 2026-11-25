@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download VerilogBlocks IDE</title>
+<meta name="description" content="Download VerilogBlocks IDE for macOS (Apple silicon), Windows 10/11 and Linux. Free and open source; Yosys and Icarus Verilog included.">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='none' stroke='%233b82f6' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="../"><span aria-hidden="true">⬡</span> VBiDE</a>
+    <ul>
+      <li class="opt"><a href="../#how">How it works</a></li>
+      <li><a href="../docs/">Docs</a></li>
+      <li><a href="./" aria-current="page">Download</a></li>
+      <li class="opt"><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="eyebrow">Free · open source · MIT licence</div>
+    <h1>Download VerilogBlocks IDE</h1>
+    <p class="lede" style="text-align:left;margin:0">The latest version for your system. Yosys, Icarus Verilog and SymbiYosys come with the app, and cocotb and pyuvm on macOS and Linux; nothing else
+      is needed to draw, simulate, synthesise and time a design.</p>
+  </div>
+</header>
+
+<section style="border-top:0;padding-top:24px">
+  <div class="wrap">
+    <div class="grid">
+      <div class="card dl" data-os="mac">
+        <div class="os">macOS</div>
+        <div class="req">Apple silicon (M1 or newer)</div>
+        <a class="btn primary" data-asset="dmg" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-mac-arm64.dmg">Download .dmg</a>
+        <a class="alt" data-asset="maczip" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-mac-arm64.zip">or the .zip</a>
+        <details open><summary>First launch</summary>
+          <p>Open the .dmg and drag the app to Applications. The app isn't signed by Apple yet, so macOS may say it is
+            "damaged". Run this once in Terminal, then open the app normally:</p>
+          <p><code>xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"</code></p>
+        </details>
+      </div>
+      <div class="card dl" data-os="win">
+        <div class="os">Windows</div>
+        <div class="req">Windows 10 or 11, 64-bit</div>
+        <a class="btn primary" data-asset="exe" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-Setup-x64.exe">Download installer</a>
+        <a class="alt" data-asset="winzip" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-win-x64.zip">or the portable .zip (no installation)</a>
+        <details open><summary>First launch</summary>
+          <p>The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC".
+            Click <b>More info</b>, then <b>Run anyway</b>. It installs for your user only; no admin rights needed.</p>
+        </details>
+      </div>
+      <div class="card dl" data-os="linux">
+        <div class="os">Linux</div>
+        <div class="req">64-bit x86</div>
+        <a class="btn primary" data-asset="appimage" href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest/download/VerilogBlocks-IDE-linux-x86_64.AppImage">Download AppImage</a>
+        <details open><summary>First launch</summary>
+          <p>Make the file executable, then run it:</p>
+          <p><code>chmod +x VerilogBlocks-IDE-linux-x86_64.AppImage</code><br><code>./VerilogBlocks-IDE-linux-x86_64.AppImage</code></p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>System requirements</h2>
+    <div class="table-scroll"><table class="t">
+      <tr><th>System</th><th>Needs</th></tr>
+      <tr><td>macOS</td><td>A Mac with Apple silicon (M1 or newer). Intel Macs are not supported.</td></tr>
+      <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). ARM-based Windows PCs are not supported yet.</td></tr>
+      <tr><td>Linux</td><td>64-bit x86 with a desktop; built and tested on Ubuntu 22.04, so a distribution of that age or newer.</td></tr>
+      <tr><td>All</td><td>About 1 GB of free disk space. The optional learning assistant needs about 1 GB more for its model and runs comfortably with 8 GB of RAM.</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What's included</h2>
+    <div class="table-scroll"><table class="t">
+      <tr><th>Part</th><th>Version</th><th>Notes</th></tr>
+      <tr><td>Yosys</td><td>0.71</td><td>Synthesis; ISC licence. Unmodified, from OSS CAD Suite.</td></tr>
+      <tr><td>Icarus Verilog (iverilog, vvp)</td><td>14.0</td><td>Simulation; GPL-2.0, runs as a separate program. Unmodified, from OSS CAD Suite.</td></tr>
+      <tr><td>SymbiYosys (sby), yices</td><td>bundled</td><td>Formal verification; ISC (sby), GPL-3 (yices, run as a separate program). From OSS CAD Suite.</td></tr>
+      <tr><td>Python 3.11, cocotb, pyuvm 5.0</td><td>bundled</td><td>Python testbenches (cocotb, UVM-style with pyuvm); PSF, BSD-3, Apache-2.0.
+        <b>Not on Windows</b>: there, install Python and run <code>python -m pip install cocotb pyuvm</code> (not yet verified with the bundled simulator).</td></tr>
+      <tr><td>SKY130 and GF180MCU cell libraries</td><td>–</td><td>The cell lists for drawing. Synthesis onto real cells also needs the PDK's Liberty file on your computer.</td></tr>
+      <tr><td>atalanta (ATPG)</td><td>not included</td><td>Its licence allows teaching and research use only, so you build it yourself:
+        <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/blob/main/docs/ATALANTA.md">step-by-step guide</a>.</td></tr>
+      <tr><td>Learning assistant</td><td>optional</td><td>Needs <a href="https://ollama.com/download">Ollama</a> (free). The app sets up its tutor model for you;
+        see <a href="../docs/#assistant">the docs</a>.</td></tr>
+    </table></div>
+    <p class="source">The app's <b>⚙ Tools</b> window shows exactly which tools it found, their versions and locations.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Check a download, or get an older version</h2>
+    <p class="sub" style="margin-bottom:12px">Every version, with its release notes and the SHA-256 checksum of each file, is on the
+      <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/releases">GitHub Releases page</a>. To check a file:</p>
+    <div class="doc">
+<pre><code># macOS / Linux
+shasum -a 256 VerilogBlocks-IDE-mac-arm64.dmg
+# Windows (PowerShell)
+Get-FileHash VerilogBlocks-IDE-Setup-x64.exe -Algorithm SHA256</code></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Docker or from source</h2>
+    <p class="sub" style="margin-bottom:12px">For labs and servers, the same app runs in a browser from a Docker container (it builds atalanta for
+      itself). Or build the desktop app yourself; you need Node.js 20 or newer.</p>
+    <div class="doc">
+<pre><code>git clone https://github.com/RohitLalu/Verilog-Blocks-IDE.git
+cd Verilog-Blocks-IDE/verilog-ide
+
+docker compose up -d        # browser version at http://localhost:3000
+
+npm ci && npm run start     # or: the desktop app in development mode
+                            # (development uses Yosys and Icarus Verilog from your PATH)</code></pre>
+    </div>
+    <p class="source">Details in the <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE#readme">README</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p><b style="color:var(--text)">VerilogBlocks IDE</b> · MIT licence · © 2026 Rohit L</p>
+      <p>Includes unmodified Yosys (ISC licence) and Icarus Verilog (GPL-2.0) from OSS CAD Suite. Each runs as a separate program.
+        Licence texts and source links come with the app.</p>
+    </div>
+    <div><a href="../docs/">Documentation</a> · <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">Source on GitHub</a> ·
+      <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/issues">Report a problem</a></div>
+  </div>
+</footer>
+<script src="../assets/site.js"></script>
+</body>
+</html>

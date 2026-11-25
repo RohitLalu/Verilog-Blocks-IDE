@@ -28,6 +28,8 @@ const httpApi = {
   },
   yosys: { synth: a => post('/api/yosys/synth', a) },
   sim:   { run:   a => post('/api/sim/run', a) },
+  cocotb: { run: a => post('/api/cocotb/run', a) },
+  formal: { run: a => post('/api/formal/run', a) },
   atpg:  { run:   a => post('/api/atpg/run', a) },   // ← new
   tools: { status: () => get('/api/tools/status') },
   dialog:{ openFolder: () => Promise.resolve(null) },

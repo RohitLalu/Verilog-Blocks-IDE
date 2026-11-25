@@ -147,14 +147,20 @@ export function generateVerilog(nodes,edges,projectName='top',pdkCtx=null){
   return{verilog,errors:[]};
 }
 
+// The design's ports: every unconnected pin, by its signal name (shared names count once). Used by the testbenches.
+export function topPorts(nodes,edges){
+  const{by,to}=rw(edges);const seen=new Set(),topIn=[],topOut=[];
+  nodes.forEach(node=>{
+    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topIn.push({sig,portName:p.name,width:p.width||1});}}});
+    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topOut.push({sig,portName:p.name,width:p.width||1});}}});
+  });
+  return{topIn,topOut};
+}
+
 export function generateTestbench(nodes,edges,projectName,tbInputs={},customCode=''){
   if(customCode?.trim())return customCode;
   const ts=new Date().toISOString().replace('T',' ').slice(0,19);
-  const{by,to}=rw(edges);const seen=new Set(),topIn=[],topOut=[];
-  nodes.forEach(node=>{
-    node.data.ports?.inputs?.forEach(p=>{if(!by[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topIn.push({sig,portName:p.name,width:p.width});}}});
-    node.data.ports?.outputs?.forEach(p=>{if(!to[`${node.id}:${p.name}`]){const sig=pinSignal(node,p.name);if(!seen.has(sig)){seen.add(sig);topOut.push({sig,portName:p.name,width:p.width});}}});
-  });
+  const{topIn,topOut}=topPorts(nodes,edges);
   const hex=(v,w)=>w>1?`${w}'h${Number(v).toString(16).toUpperCase().padStart(Math.ceil(w/4),'0')}`:`1'b${v}`;
   // Each stimulated input gets its own initial block, so all inputs run at the same time (one shared block ran them one
   // after another), and every step waits one period (sequence steps used to wait period*(i+1): changes at 10, 30, 60, ...).

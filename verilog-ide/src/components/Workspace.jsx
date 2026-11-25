@@ -1,9 +1,11 @@
 import React,{useCallback,useRef}from'react';
 import ReactFlow,{Background,Controls,MiniMap,ReactFlowProvider,useReactFlow}from'reactflow';
 import'reactflow/dist/style.css';
+import WireEdge from'./WireEdge.jsx';
 import BlockNode from'./BlockNode.jsx';
 import useStore from'../store/graphStore.js';
 const nodeTypes={blockNode:BlockNode};
+const edgeTypes={default:WireEdge};   // every wire: name label, and × to delete when selected
 function WorkspaceInner(){
   const{nodes,edges,onNodesChange,onEdgesChange,onConnect,addBlock,setPDKLocked,undo,redo,copySelection,pasteClipboard}=useStore();
   const wrapRef=useRef(null);const{screenToFlowPosition}=useReactFlow();
@@ -25,7 +27,8 @@ function WorkspaceInner(){
   return(
     <div ref={wrapRef} style={{flex:1,height:'100%'}} onDrop={onDrop} onDragOver={onDragOver} onKeyDown={onKeyDown} tabIndex={0}>
       <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
-        nodeTypes={nodeTypes} fitView snapToGrid snapGrid={[15,15]} deleteKeyCode="Delete" multiSelectionKeyCode="Shift"
+        edgeTypes={edgeTypes} onEdgeDoubleClick={(e,edge)=>onEdgesChange([{type:'remove',id:edge.id}])}
+        nodeTypes={nodeTypes} fitView snapToGrid snapGrid={[15,15]} deleteKeyCode={['Delete','Backspace']} multiSelectionKeyCode="Shift"
         connectionLineStyle={{stroke:'#3b82f6',strokeWidth:1.5}}
         defaultEdgeOptions={{style:{stroke:'#3b82f6',strokeWidth:1.5},markerEnd:{type:'arrowclosed',color:'#3b82f6'}}}>
         <Background color="#141e2e" gap={20} size={1} variant="dots"/>

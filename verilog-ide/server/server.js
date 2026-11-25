@@ -4,6 +4,8 @@ const path     = require('path');
 const fs       = require('fs');
 const { spawnSync } = require('child_process');
 const { toolStatus } = require('./toolStatus.js');
+const { runCocotb } = require('./cocotbRunner.js');
+const { runFormal } = require('./formalRunner.js');
 const { runSimulation } = require('./simRunner.js');
 const { runSynthesis } = require('./synthRunner.js');
 const { runAtpg } = require('./atpgRunner.js');
@@ -172,6 +174,22 @@ app.post('/api/sim/run', async (req, res) => {
     const simDir = path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'sim');
     res.json(await runSimulation({ simDir, verilog, testbench }));
   } catch (e) { res.status(e.status || 500).json({ ok: false, error: e.message, output: e.message, vcd: null }); }
+});
+
+// ── cocotb (Python testbenches; runs the user's own Python test) ──────────────
+app.post('/api/cocotb/run', async (req, res) => {
+  const { projectName, verilog, testPy } = req.body;
+  try {
+    res.json(await runCocotb({ dir: path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'cocotb'), verilog, testPy }));
+  } catch (e) { res.status(e.status || 500).json({ ok: false, output: e.message }); }
+});
+
+// ── Formal verification (SymbiYosys) ─────────────────────────────────────────
+app.post('/api/formal/run', async (req, res) => {
+  const { projectName, verilog, props, mode, depth } = req.body;
+  try {
+    res.json(await runFormal({ dir: path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'formal'), verilog, props, mode, depth }));
+  } catch (e) { res.status(e.status || 500).json({ ok: false, status: 'ERROR', output: e.message }); }
 });
 
 // ── ATPG (atalanta) ───────────────────────────────────────────────────────────
