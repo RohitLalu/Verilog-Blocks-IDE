@@ -15,6 +15,14 @@ app.setPath('userData', path.join(DATA, 'profile'));   // fresh UI state each ru
 process.argv.push('--use-dist');
 require('../../verilog-ide/electron-main.js');
 
+// Without a running Ollama, a stand-in that only lists the tutor model, so the assistant screenshot shows its ready
+// state (the welcome text and suggested questions). It answers nothing else; no fake answers are shown.
+const http = require('http');
+http.get('http://127.0.0.1:11434/api/tags', r => r.resume()).on('error', () => {
+  http.createServer((req, res) => res.end(req.url === '/api/tags' ? JSON.stringify({ models: [{ name: 'vbide-tutor:2.1' }] }) : '{}'))
+    .listen(11434, '127.0.0.1').unref();
+});
+
 // ── demo design ──────────────────────────────────────────────────────────────
 const cells = JSON.parse(fs.readFileSync(path.join(__dirname, '../../verilog-ide/pdk/sky130/cells-manifest.json'), 'utf8')).cells;
 const cell = id => cells.find(c => c.id === id);
@@ -79,6 +87,8 @@ app.on('browser-window-created', (_e, win) => {
       // ATPG needs atalanta on PATH
       await click(win, 'ATPG'); await click(win, 'Run ATPG'); await wait(6000); await shot(win, 'atpg');
       await click(win, 'STA'); await click(win, 'Run STA'); await wait(2500); await shot(win, 'sta');
+      // the assistant beside the timing panel, in its ready state (no answer shown: a real one needs a real model)
+      await click(win, '✦ Ask'); await wait(2000); await shot(win, 'assistant');
     } catch (e) { console.error(e); process.exitCode = 1; }
     app.exit();
   });

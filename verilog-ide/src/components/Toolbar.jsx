@@ -26,7 +26,7 @@ export default function Toolbar({ onOpenPDKSelector }) {
     projectName, setProjectName,
     selectedPDK, pdkContext, pdkLocked, clearGraph,
     pushNotification, undo, redo, canUndo, canRedo,
-    setStaSlack, atpgRunning,
+    setStaSlack, atpgRunning, showAssistant, setShowAssistant,
   } = useStore();
 
   const [editing, setEditing] = useState(false);
@@ -166,9 +166,12 @@ export default function Toolbar({ onOpenPDKSelector }) {
         {atpgRunning ? '⟳' : '◈'} ATPG
       </button>
 
+      {/* ⊨ Formal — SymbiYosys */}
+      <button onClick={() => setActivePanel('formal')} style={B.purple} title="Formal verification: prove properties of your design for all inputs">⊨ Formal</button>
+
       {/* ✦ Ask — learning assistant (local model through Ollama) */}
-      <button onClick={() => setActivePanel(activePanel === 'assistant' ? 'blocks' : 'assistant')} style={B.pink}
-        title="Learning assistant: ask about your circuit, Verilog or the flow">✦ Ask</button>
+      <button onClick={() => setShowAssistant(!showAssistant)} style={{ ...B.pink, ...(showAssistant ? { background:'#4a1340' } : {}) }}
+        aria-pressed={showAssistant} title="Learning assistant: ask about your circuit, Verilog or your results">✦ Ask</button>
 
       <div style={{ width:1, height:22, background:'#1e2733' }} />
 

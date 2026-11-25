@@ -26,14 +26,23 @@ test('host target names match electron-builder ${os}-${arch}', () => {
 });
 
 test('member selection keeps tools, data and candidate libraries, and drops the rest of the suite', () => {
+  const P = 'oss-cad-suite/lib/python3.11/';
   const names = ['oss-cad-suite/', 'oss-cad-suite/bin/yosys', 'oss-cad-suite/bin/nextpnr-ice40', 'oss-cad-suite/libexec/ivl',
-    'oss-cad-suite/lib/libz.so.1', 'oss-cad-suite/lib/python3.11/os.py', 'oss-cad-suite/lib/yosys-abc', 'oss-cad-suite/lib/ivl/',
+    'oss-cad-suite/lib/libz.so.1', P + 'os.py', 'oss-cad-suite/lib/yosys-abc', 'oss-cad-suite/lib/ivl/',
     'oss-cad-suite/lib/ivl/system.vpi', 'oss-cad-suite/share/yosys/cells_sim.v', 'oss-cad-suite/share/yosys/ice40/cells_sim.v',
-    'oss-cad-suite/license/LICENSE.yosys', 'oss-cad-suite/license/LICENSE.ghdl'];
+    'oss-cad-suite/license/LICENSE.yosys', 'oss-cad-suite/license/LICENSE.ghdl',
+    // verification tools: kept
+    'oss-cad-suite/bin/sby', 'oss-cad-suite/libexec/sby', 'oss-cad-suite/share/yosys/python3/sby_core.py', 'oss-cad-suite/bin/yices-smt2',
+    P + 'site-packages/cocotb-2.1-py3.11.egg/cocotb/__init__.py', P + 'site-packages/click/core.py',
+    // ... and the parts of the suite's Python the app never uses: dropped
+    P + 'site-packages/amaranth/hdl.py', P + 'test/test_os.py', P + 'tkinter/__init__.py', P + '__pycache__/os.cpython-311.pyc',
+    P + 'config-3.11-x86_64-linux-gnu/libpython3.11.a', 'oss-cad-suite/bin/boolector'];
   const { top, picked } = selectMembers(names, RULES['linux-x64']);
   assert.equal(top, 'oss-cad-suite');
-  assert.deepEqual(picked, ['oss-cad-suite/bin/yosys', 'oss-cad-suite/libexec/ivl', 'oss-cad-suite/lib/libz.so.1', 'oss-cad-suite/lib/yosys-abc',
-    'oss-cad-suite/lib/ivl/system.vpi', 'oss-cad-suite/share/yosys/cells_sim.v', 'oss-cad-suite/license/LICENSE.yosys']);
+  assert.deepEqual(picked, ['oss-cad-suite/bin/yosys', 'oss-cad-suite/libexec/ivl', 'oss-cad-suite/lib/libz.so.1', P + 'os.py', 'oss-cad-suite/lib/yosys-abc',
+    'oss-cad-suite/lib/ivl/system.vpi', 'oss-cad-suite/share/yosys/cells_sim.v', 'oss-cad-suite/license/LICENSE.yosys',
+    'oss-cad-suite/bin/sby', 'oss-cad-suite/libexec/sby', 'oss-cad-suite/share/yosys/python3/sby_core.py', 'oss-cad-suite/bin/yices-smt2',
+    P + 'site-packages/cocotb-2.1-py3.11.egg/cocotb/__init__.py', P + 'site-packages/click/core.py']);
 });
 
 test('ld.so --list output is parsed into resolved paths', () => {

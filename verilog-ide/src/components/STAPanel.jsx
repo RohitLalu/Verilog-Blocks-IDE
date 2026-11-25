@@ -2,8 +2,8 @@ import React,{useState}from'react';
 import useStore from'../store/graphStore.js';
 import{runSTA}from'../simulator/TimingEngine.js';
 export default function STAPanel(){
-  const{nodes,edges,pdkContext,setStaSlack,clearStaSlack}=useStore();
-  const[cp,setCp]=useState(10);const[id,setId]=useState(0);const[od,setOd]=useState(0);const[res,setRes]=useState(null);const[run,setRun]=useState(false);
+  const{nodes,edges,pdkContext,setStaSlack,clearStaSlack,staResult:res,setStaResult:setRes,assistantAsk}=useStore();
+  const[cp,setCp]=useState(10);const[id,setId]=useState(0);const[od,setOd]=useState(0);const[run,setRun]=useState(false);
   const go=()=>{
     if(!nodes.length)return;setRun(true);
     try{
@@ -13,7 +13,7 @@ export default function STAPanel(){
     }catch(e){console.error(e);}
     setRun(false);
   };
-  React.useEffect(()=>()=>clearStaSlack(),[]); // clear highlighting on unmount
+  React.useEffect(()=>{if(res)setStaSlack(res.instanceSlack||{});return()=>clearStaSlack();},[]); // colour cells while open
   const sc=s=>s<0?'#f87171':s<cp*.1?'#fbbf24':'#4ade80';
   const inp=(val,set,min=0)=><div style={{display:'flex',alignItems:'center',gap:4}}><input type="number" min={min} step={.5} value={val} onChange={e=>set(parseFloat(e.target.value)||0)} style={{background:'#161b27',border:'1px solid #1e2733',borderRadius:4,color:'#94a3b8',fontSize:11,padding:'3px 6px',width:58,fontFamily:"'JetBrains Mono',monospace",outline:'none'}}/><span style={{color:'#334155',fontSize:10}}>ns</span></div>;
   return(<div style={{width:400,background:'#0d1117',borderLeft:'1px solid #1e2733',display:'flex',flexDirection:'column',fontFamily:"'Space Grotesk',sans-serif",flexShrink:0}}>
@@ -24,6 +24,7 @@ export default function STAPanel(){
       </div>
       <div style={{display:'flex',gap:8}}>
         <button onClick={go} disabled={run||!nodes.length} style={{background:'#0a1628',border:'1px solid #1e40af',borderRadius:6,color:'#60a5fa',fontSize:12,fontWeight:600,padding:'6px 16px',cursor:!nodes.length?'not-allowed':'pointer',opacity:!nodes.length?.4:1}}>{run?'⟳ Analysing…':'▶ Run STA'}</button>
+        {res&&<button onClick={()=>assistantAsk('Explain my timing result: the critical path, the slack, and what limits the maximum frequency.')} style={askBtn}>✦ Explain</button>}
         {res&&<button onClick={()=>{setRes(null);clearStaSlack();}} style={{background:'transparent',border:'1px solid #1e2733',borderRadius:6,color:'#475569',fontSize:11,padding:'6px 12px',cursor:'pointer'}}>Clear highlighting</button>}
       </div>
       {res&&<div style={{color:'#1e3a5f',fontSize:9.5,marginTop:8}}>Canvas nodes are now colour-coded by slack. Red=violation, yellow=marginal, green=tight-but-met.</div>}
@@ -59,3 +60,5 @@ export default function STAPanel(){
     </div>
   </div>);
 }
+
+const askBtn={background:'#2a0f24',border:'1px solid #9d174d',borderRadius:6,color:'#f472b6',fontSize:11,padding:'6px 12px',cursor:'pointer'};

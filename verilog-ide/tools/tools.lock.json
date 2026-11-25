@@ -4,14 +4,53 @@
     "tag": "2026-11-14",
     "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/{tag}/{asset}",
     "assets": {
-      "linux-x64": { "asset": "oss-cad-suite-linux-x64-20261114.tgz", "size": 750723713, "sha256": "25d1960bc0f002c43b3579423c4e622bcffed49b7bb8b1f02df6426b1bdd2f26" },
-      "mac-arm64": { "asset": "oss-cad-suite-darwin-arm64-20261114.tgz", "size": 527123454, "sha256": "e8f4edd46387bc75dc7449e0b4834bf5a7bd8465e2d7c83239120a14ef22b3ca" },
-      "win-x64": { "asset": "oss-cad-suite-windows-x64-20261114.tgz", "size": 606214133, "sha256": "3928bd7a49c6ba4cee27205b9df9f41829a518398db8abe964b8378206232d97" }
+      "linux-x64": {
+        "asset": "oss-cad-suite-linux-x64-20261114.tgz",
+        "size": 750723713,
+        "sha256": "25d1960bc0f002c43b3579423c4e622bcffed49b7bb8b1f02df6426b1bdd2f26"
+      },
+      "mac-arm64": {
+        "asset": "oss-cad-suite-darwin-arm64-20261114.tgz",
+        "size": 527123454,
+        "sha256": "e8f4edd46387bc75dc7449e0b4834bf5a7bd8465e2d7c83239120a14ef22b3ca"
+      },
+      "win-x64": {
+        "asset": "oss-cad-suite-windows-x64-20261114.tgz",
+        "size": 606214133,
+        "sha256": "3928bd7a49c6ba4cee27205b9df9f41829a518398db8abe964b8378206232d97"
+      }
     }
   },
   "atalanta": {
     "repo": "https://github.com/hsluoyz/Atalanta",
     "commit": "a8e07fe4af80c55b0d4ca77e382731b03ad731dc",
-    "sources": ["error.cpp", "hash.cpp", "help.cpp", "read_cct.cpp", "structure.cpp", "io.cpp", "pio.cpp", "stem.cpp", "define_fault_list.cpp", "testability.cpp", "fan.cpp", "learn.cpp", "ppsfp.cpp", "truth.cpp", "lsim.cpp", "fsim.cpp", "random.cpp", "print.cpp", "sim.cpp", "atalanta.cpp"]
+    "sources": [
+      "error.cpp",
+      "hash.cpp",
+      "help.cpp",
+      "read_cct.cpp",
+      "structure.cpp",
+      "io.cpp",
+      "pio.cpp",
+      "stem.cpp",
+      "define_fault_list.cpp",
+      "testability.cpp",
+      "fan.cpp",
+      "learn.cpp",
+      "ppsfp.cpp",
+      "truth.cpp",
+      "lsim.cpp",
+      "fsim.cpp",
+      "random.cpp",
+      "print.cpp",
+      "sim.cpp",
+      "atalanta.cpp"
+    ]
+  },
+  "pyuvm": {
+    "version": "5.0.0",
+    "file": "pyuvm-5.0.0-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/3b/19/394894dcfbcaca315f96c4c5edb9a58582d234718647ad76efe49aa20088/pyuvm-5.0.0-py3-none-any.whl",
+    "sha256": "9165a06b5544b1a33af242b0c4cdfc5f3e5d3e6463aeef69a35884a8bd6a91cd"
   }
 }

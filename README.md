@@ -2,7 +2,9 @@
 
 A free desktop app for learning digital and ASIC design. Drag real SkyWater SKY130 (or GF180MCU) standard cells onto a
 canvas and wire them up. The app writes the Verilog, simulates it with Icarus Verilog, synthesises it with Yosys, and
-reports static timing and stuck-at fault coverage (ATPG). Yosys and Icarus Verilog come with the app.
+reports static timing and stuck-at fault coverage (ATPG), checks properties formally with SymbiYosys, and runs cocotb and
+pyuvm (UVM in Python) testbenches. Yosys, Icarus Verilog, SymbiYosys, and Python with cocotb and pyuvm come with the app
+(on Windows, cocotb and pyuvm are not included; see *Bundled tools*).
 
 * **Website:** https://vbide.netlify.app (a one-minute video, screenshots, downloads)
 * **Download:** the [latest release](https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest) for macOS
@@ -33,7 +35,27 @@ point the app at your SKY130 or GF180 PDK folder when it asks.
    parallel, and the waveform opens showing the whole run.
 5. **Synthesise** with Yosys onto the PDK's real cells (cell list and chip area).
 6. **Check timing** (critical path, slack, maximum frequency, shown on the canvas) and **fault coverage** (ATPG).
-7. **Reuse**: save a design as a block and place it inside bigger designs (hierarchy).
+7. **Prove it** (**⊨ Formal**): write `assert`/`assume` properties; SymbiYosys proves them for every input, or shows a
+   counterexample in the waveform viewer.
+8. **Test it in Python**: the testbench's **cocotb** tab writes a cocotb test, or a UVM-structured **pyuvm** one, and runs it.
+9. **Reuse**: save a design as a block and place it inside bigger designs (hierarchy).
+10. **Ask the tutor** (**✦ Ask**, or **✦ Explain** next to any result): VerilogBlocks' own assistant explains your
+   circuit, your simulation, timing, ATPG and Yosys results, and any cell. It runs locally (see below).
+
+### The learning assistant
+
+The assistant is **vbide-tutor**, a small open-source model made for this app. It runs on your own computer through
+[Ollama](https://ollama.com), so nothing you type leaves the machine.
+
+1. Install Ollama (free; macOS, Windows, Linux) and start it.
+2. In VerilogBlocks IDE click **✦ Ask**, then **Set up the tutor**. The app downloads the base model, Qwen2.5-Coder 1.5B
+   (Apache-2.0, about 1 GB), once, and builds `vbide-tutor` from it in your Ollama, with instructions about this app and
+   settings for steady explanations. No training is involved; you can see it with `ollama show vbide-tutor:2.1`.
+3. Ask away. Each question goes with your design (cells, Verilog) and your latest simulation, timing, ATPG and Yosys
+   results, so you can ask "why is this my critical path?" or press **✦ Explain** next to a result.
+
+The chat floats over the canvas and stays open beside any panel. A small local model can be wrong; check important
+answers.
 
 Everything runs on your computer. Projects are ordinary files in your user folder (see *Where your data lives*).
 
@@ -48,20 +70,40 @@ Everything runs on your computer. Projects are ordinary files in your user folde
   nothing you type leaves the machine. A built-in runtime may follow once the feature has proved useful.
 * Designs built from saved designs (hierarchy) now generate valid Verilog, and the waveform shows your signal names.
 
-**v2.0.3**
+**v2.0.3 (released)**
 
 * Supported Electron (45) and patched dependencies (see *Security notes*).
 
-**Next**
+**v2.0.4 (released)**
 
 * **⚙ Tools** window: which tools the app uses (bundled or installed), their versions and locations; atalanta build
   guide ([docs/ATALANTA.md](docs/ATALANTA.md)) linked from it and from the ATPG panel.
+
+**v2.1.0**
+
+* The assistant becomes **vbide-tutor**, built for this app, and is fully part of the IDE: it sees your design and your
+  latest simulation, timing, ATPG, Yosys and cocotb results and how far along the flow you are; **✦ Explain** buttons next
+  to each result and on every cell's help; the chat floats over the canvas beside any panel. It suggests the next flow
+  step, compares designs, and introduces design-for-test and UVM-style verification once testing starts.
+* Tool panels open as **tabs** in a resizable right frame (like Vivado).
+* Wires: a visible **×** deletes a selected wire, double-click deletes too; **combinational loops** are refused.
+* ATPG: a **Vectors** tab shows every test pattern without downloading; the pattern file is now found even when the
+  folder path contains a dot.
+* **cocotb** tests (Python) from the testbench panel, run with the bundled Icarus Verilog, with a **UVM (pyuvm)** template.
+* **⊨ Formal** panel: SymbiYosys proves `assert` properties (or checks them to a depth); counterexamples open as waveforms.
+* Bundled with the app: Python 3.11 with cocotb and pyuvm (macOS, Linux), SymbiYosys with the yices solver (all).
+* Content-Security-Policy on the app's pages.
+* The Delete key works on a Mac keyboard; a panel error no longer blanks the window.
+
+**Next**
 
 * Promo video: soft background music, a Yosys synthesis run, and a bigger module built from smaller custom modules.
 
 **Later**
 
 * The complete [LibreLane](https://github.com/librelane/librelane) RTL-to-GDS flow, driven from the GUI.
+* A fine-tuned vbide-tutor (LoRA on a curated set of questions and answers about this app and digital design),
+  published as an Ollama model.
 * An agentic assistant for chip design that proposes and carries out design decisions once the requirements are
   clearly understood.
 * A GDS layout viewer, in the spirit of the [Tiny Tapeout GDS viewer](https://gds-viewer.tinytapeout.com).
@@ -213,11 +255,25 @@ Until the apps are code-signed, users see a warning the first time they open the
 #### Bundled tools
 
 `npm run fetch-tools` (`scripts/fetch-tools.js`) downloads the OSS CAD Suite release pinned in `tools/tools.lock.json`
-(size and SHA-256 checked) and keeps only what the app runs: Yosys, yosys-abc, iverilog, vvp, their data files, their
-licences, and the shared libraries they actually load. On Linux it asks the suite's own loader; on macOS it walks
-`otool -L`; on Windows it reads the DLL import tables. It then runs the result with a scrubbed environment (compile and
-simulate, synthesise through ABC). Sizes: about 60 MB on macOS, 140 MB on Linux and 240 MB on Windows (MinGW builds are larger).
-The archive is cached in `.cache/tools/`, and neither folder is committed.
+(size and SHA-256 checked) and keeps only what the app runs, with the shared libraries they actually load and their
+licences. On Linux it asks the suite's own loader; on macOS it walks `otool -L` (following `@rpath`); on Windows it reads
+the DLL import tables. It then runs the result with a scrubbed environment: compile and simulate, synthesise through ABC,
+prove a property with SymbiYosys, and (macOS, Linux) pass a cocotb test that imports pyuvm.
+
+| Part | macOS | Linux | Windows |
+|------|:-----:|:-----:|:-------:|
+| Yosys, yosys-abc, Icarus Verilog (iverilog, vvp) | ✓ | ✓ | ✓ |
+| SymbiYosys (`sby`) with the yices solver | ✓ | ✓ | ✓ |
+| Python 3.11 (standard library, trimmed) | ✓ | ✓ | ✓ (runs SymbiYosys) |
+| cocotb | ✓ | ✓ | – |
+| pyuvm (from PyPI, pinned) | ✓ | ✓ | – |
+
+Windows: OSS CAD Suite's Windows Python is a MinGW build without cocotb, and cocotb's own Windows packages target the
+standard (MSVC) Python, so the app can't ship a working cocotb there yet. Windows users install Python and
+`python -m pip install cocotb pyuvm` themselves; whether cocotb then works with the bundled Icarus on Windows is not yet
+verified. Sizes: about 125 MB on macOS, more on Linux and Windows. The archive is cached in `.cache/tools/`, and
+neither folder is committed. The only change to upstream files: the `sby` and `yosys-smtbmc` launcher scripts get quotes
+around one path, so they work from a folder with a space.
 
 * `--with-atalanta` (or `VBIDE_BUNDLE_ATALANTA=1`) also compiles atalanta from the pinned commit. **Off by default**:
   atalanta's README allows teaching and research use only, and no commercial product without permission from its
@@ -270,6 +326,10 @@ The backend can read and write files, so it is locked down by default:
 - It answers only requests whose `Host` is `localhost`, `127.0.0.1` or `[::1]` (plus `VBIDE_ALLOWED_HOSTS`), and only the page it serves. CORS is not enabled. In development, Vite proxies `/api` to it and its origin (`http://localhost:5173`) is allowed outside production; add others with `VBIDE_ALLOWED_ORIGINS`.
 - Project and block names must be a single path segment: letters, digits, spaces, `_ - . ( )`, at most 100 characters.
 - `/api/pdk/read-lib` serves only `.lib` files that sit inside a configured PDK folder.
+- The cocotb and formal routes run the user's own Python test and SymbiYosys job, with the server's user rights. Another
+  reason never to expose the API to others.
+- The built app's pages carry a Content-Security-Policy: scripts only from the app, network only to the app itself and
+  the local Ollama (the assistant); no plugins, frames or form posts.
 - Never expose the API to an untrusted network: there is no login. Use a reverse proxy with authentication for shared servers.
 - Dependencies: `npm audit --omit=dev` (what the app and the Docker server ship) reports no known vulnerabilities. The
   desktop app runs a supported Electron (45), with a sandboxed renderer that only loads the app's own pages.

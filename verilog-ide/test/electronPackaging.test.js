@@ -56,3 +56,11 @@ test('the desktop app and the Docker server share the same tool runners', () => 
   const main = fs.readFileSync(path.join(root, 'electron-main.js'), 'utf8'), srv = fs.readFileSync(path.join(root, 'server/server.js'), 'utf8');
   for (const r of ['simRunner', 'synthRunner', 'atpgRunner']) { assert.ok(main.includes(`./server/${r}.js`), 'electron-main lacks ' + r); assert.ok(srv.includes(`./${r}.js`), 'server.js lacks ' + r); }
 });
+
+test('the built page carries a Content-Security-Policy that only allows the app itself and the local Ollama', async () => {
+  const { CSP } = await import(require('url').pathToFileURL(path.join(root, 'vite.config.js')).href);
+  assert.match(CSP, /script-src 'self'(;|$)/); assert.match(CSP, /object-src 'none'/);
+  assert.match(CSP, /connect-src 'self' http:\/\/127\.0\.0\.1:11434 http:\/\/localhost:11434(;|$)/);
+  const built = path.join(root, 'dist', 'index.html');
+  if (fs.existsSync(built)) assert.ok(fs.readFileSync(built, 'utf8').includes('Content-Security-Policy'), 'npm run build adds it');
+});

@@ -7,18 +7,20 @@ import TestbenchPanel from'./components/TestbenchPanel.jsx';
 import SimulatorPanel from'./components/SimulatorPanel.jsx';
 import STAPanel from'./components/STAPanel.jsx';
 import ATPGPanel from'./components/ATPGPanel.jsx';
-import AssistantPanel from'./components/AssistantPanel.jsx';
+import AssistantDock from'./components/AssistantDock.jsx';
 import TutorialPanel from'./components/TutorialPanel.jsx';
 import{CustomBlockBuilder,HierarchyExporter,PDKSelector}from'./components/Modals.jsx';
 import ProjectBrowser from'./components/ProjectBrowser.jsx';
 import ToolsModal from'./components/ToolsModal.jsx';
+import RightFrame from'./components/RightFrame.jsx';
+import FormalPanel from'./components/FormalPanel.jsx';
 import useStore from'./store/graphStore.js';
 import{loadPDK}from'./pdk/pdkLoader.js';
 import'./App.css';
 
 export default function App(){
   const{activePanel,showTutorial,showCustomBlockBuilder,showHierarchyExporter,
-    showProjectBrowser,showTools,selectedPDK,setCellsManifest,setPDKContext,userBlocks}=useStore();
+    showProjectBrowser,showTools,showAssistant,selectedPDK,setCellsManifest,setPDKContext,userBlocks}=useStore();
 
   const[showPDKSelector,setShowPDKSelector]=useState(false);
 
@@ -43,19 +45,14 @@ export default function App(){
     }
   };
 
+  const assistantOpened=React.useRef(false);if(showAssistant)assistantOpened.current=true;
+
   // Right panel — driven by activePanel state
   const rightPanel=()=>{
     if(showTutorial)return<TutorialPanel/>;
-    switch(activePanel){
-      case'verilog':    return<VerilogPanel/>;
-      case'synthesis':  return<SynthesisPanel/>;
-      case'sta':        return<STAPanel/>;
-      case'testbench':  return<TestbenchPanel/>;
-      case'simulator':  return<SimulatorPanel/>;
-      case'atpg':       return<ATPGPanel/>;
-      case'assistant':  return<AssistantPanel/>;
-      default:          return null;
-    }
+    const panel={verilog:<VerilogPanel/>,synthesis:<SynthesisPanel/>,sta:<STAPanel/>,testbench:<TestbenchPanel/>,
+      simulator:<SimulatorPanel/>,atpg:<ATPGPanel/>,formal:<FormalPanel/>}[activePanel];
+    return panel?<RightFrame>{panel}</RightFrame>:null;
   };
 
   return(
@@ -63,7 +60,11 @@ export default function App(){
       <Toolbar onOpenPDKSelector={()=>setShowPDKSelector(true)}/>
       <div className="app-body">
         <BlockPanel/>
-        <Workspace/>
+        {/* the assistant floats over the canvas, beside whatever panel is open; once opened it stays mounted (closing keeps the chat) */}
+        <div style={{position:'relative',flex:1,display:'flex',minWidth:0}}>
+          <Workspace/>
+          {(showAssistant||assistantOpened.current)&&<div style={{display:showAssistant?'contents':'none'}}><AssistantDock/></div>}
+        </div>
         {rightPanel()}
       </div>
       {showPDKSelector&&<PDKSelector onComplete={handlePDKComplete}/>}

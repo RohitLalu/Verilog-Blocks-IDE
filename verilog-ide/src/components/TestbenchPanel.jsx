@@ -1,7 +1,9 @@
 import{runSimulation}from'../lib/runSimulation.js';
-import React,{useState,useMemo}from'react';
+import React,{useState,useMemo,useEffect}from'react';
 import useStore from'../store/graphStore.js';
-import{generateTestbench}from'../codegen/graphToVerilog.js';
+import{generateTestbench,generateVerilog}from'../codegen/graphToVerilog.js';
+import{generateCocotbTest}from'../codegen/cocotbTemplate.js';
+import ExplainButton from'./ExplainButton.jsx';
 import{pinSignal}from'../lib/netNaming.js';
 import VCDViewer from'./VCDViewer.jsx';
 
@@ -21,17 +23,31 @@ function useTopInputs(nodes,edges){
   },[nodes,edges]);
 }
 
-const TABS={inputs:'Inputs',dft:'DFT / Scan',preview:'Preview',custom:'Custom TB'};
+const TABS={inputs:'Inputs',dft:'DFT / Scan',preview:'Preview',custom:'Custom TB',cocotb:'cocotb'};
 
 export default function TestbenchPanel(){
   const{nodes,edges,projectName,testbenchInputs,setTestbenchInput,clearTestbenchInputs,
     generatedTestbench,setGeneratedTestbench,customTestbench,setCustomTestbench,
     useCustomTestbench,setUseCustomTestbench,simOutput,simRunning,setSimRunning,
     setSimOutput,setLastVCD,lastVCD,setActivePanel,
-    generatedVerilog,pdkContext,pushNotification}=useStore();
+    generatedVerilog,pdkContext,pushNotification,cocotbCode,setCocotbCode,cocotbResult,setCocotbResult,setShowTools,cocotbStyle,setCocotbStyle}=useStore();
 
   const ports=useTopInputs(nodes,edges);
   const[tab,setTab]=useState('inputs');
+  const[cocotbRunning,setCocotbRunning]=useState(false);
+  // cocotb: a Python test, generated for the design's ports the first time, then the user's to edit
+  useEffect(()=>{if(tab==='cocotb'&&!cocotbCode&&nodes.length)setCocotbCode(generateCocotbTest(nodes,edges,cocotbStyle));},[tab]);
+  const runCocotbTest=async()=>{
+    if(!window.api?.cocotb){pushNotification('cocotb runs in the desktop app or the Docker server.','error');return;}
+    setCocotbRunning(true);setCocotbResult(null);
+    try{
+      const verilog=generateVerilog(nodes,edges,projectName,pdkContext).verilog;
+      const r=await window.api.cocotb.run({projectName,verilog,testPy:cocotbCode});
+      setCocotbResult(r);
+      pushNotification(r.summary?`cocotb: ${r.summary.passed} of ${r.summary.tests} tests passed`:'cocotb did not run (see its output)',r.ok?'success':'error');
+    }catch(e){setCocotbResult({ok:false,output:String(e.message||e)});}
+    setCocotbRunning(false);
+  };
   const[dftOn,setDftOn]=useState(false);
   const[vecCount,setVecCount]=useState(16);
 
@@ -163,6 +179,40 @@ export default function TestbenchPanel(){
             fontFamily:"'JetBrains Mono',monospace",maxHeight:480,overflowY:'auto'}}>
             {generatedTestbench||'Click "Preview TB" in Inputs tab to generate.'}
           </pre>
+        </>}
+
+        {/* ── cocotb tab: tests in Python, run with Icarus Verilog ── */}
+        {tab==='cocotb'&&<>
+          <div style={{color:'#475569',fontSize:11,marginBottom:10,lineHeight:1.6}}>
+            A <a href="https://docs.cocotb.org" target="_blank" rel="noreferrer" style={{color:'#38bdf8'}}>cocotb</a> test drives
+            your design from Python and checks its outputs with <code style={{color:'#facc15',fontSize:10}}>assert</code>.
+            Needs Python 3 with cocotb (<code style={{color:'#facc15',fontSize:10}}>python3 -m pip install cocotb</code>);
+            <button onClick={()=>setShowTools(true)} style={{background:'none',border:'none',color:'#38bdf8',fontSize:11,cursor:'pointer',padding:'0 2px'}}>⚙ Tools</button> shows whether it's installed.
+          </div>
+          <div style={{display:'flex',gap:8,marginBottom:8}}>
+            <button onClick={runCocotbTest} disabled={cocotbRunning||!cocotbCode}
+              style={{background:'#0a2218',border:'1px solid #166534',borderRadius:6,color:'#4ade80',fontSize:11.5,fontWeight:600,padding:'5px 12px',cursor:'pointer',opacity:cocotbRunning?0.6:1}}>
+              {cocotbRunning?'⟳ Running…':'▶ Run cocotb'}</button>
+            <select value={cocotbStyle} onChange={e=>{setCocotbStyle(e.target.value);setCocotbCode(generateCocotbTest(nodes,edges,e.target.value));}}
+              aria-label="Test style" title="Template (choosing one replaces the test below)"
+              style={{background:'#161b27',border:'1px solid #1e2733',borderRadius:6,color:'#94a3b8',fontSize:11,padding:'4px 6px'}}>
+              <option value="basic">Simple test</option><option value="pyuvm">UVM (pyuvm)</option></select>
+            <button onClick={()=>setCocotbCode(generateCocotbTest(nodes,edges,cocotbStyle))} title="Replace with a fresh test for the current ports"
+              style={{background:'#161b27',border:'1px solid #1e2733',borderRadius:6,color:'#64748b',fontSize:11,padding:'5px 10px',cursor:'pointer'}}>Regenerate</button>
+          </div>
+          <textarea value={cocotbCode} onChange={e=>setCocotbCode(e.target.value)} spellCheck={false} aria-label="cocotb test (Python)"
+            style={{width:'100%',height:260,background:'#0a0e18',border:'1px solid #1e2733',borderRadius:6,color:'#94a3b8',fontSize:10.5,
+              fontFamily:"'JetBrains Mono',monospace",padding:12,resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.7}}/>
+          {cocotbResult&&<div style={{marginTop:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+              <span style={{color:cocotbResult.ok?'#4ade80':'#f87171',fontSize:12,fontWeight:700}}>
+                {cocotbResult.summary?`${cocotbResult.summary.passed} passed · ${cocotbResult.summary.failed} failed`:'Did not run'}</span>
+              <ExplainButton prompt={cocotbResult.ok?'Explain what my cocotb test checked and what I could test next.':'My cocotb test failed. Explain why and how to fix my test or my design.'}/>
+            </div>
+            <pre style={{background:'#0a0e18',border:'1px solid #1e2733',borderRadius:6,padding:10,margin:0,fontSize:10,lineHeight:1.6,color:'#64748b',
+              whiteSpace:'pre-wrap',wordBreak:'break-word',fontFamily:"'JetBrains Mono',monospace",maxHeight:220,overflowY:'auto'}}>
+              {(cocotbResult.output||'').slice(-4000)}</pre>
+          </div>}
         </>}
 
         {/* ── Custom TB tab ── */}

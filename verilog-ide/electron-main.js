@@ -11,6 +11,8 @@ const { dataDirs, assertWritableLocations } = require('./server/appPaths.js');
 const { toolPath, ivlBaseAlias, removeAlias } = require('./server/toolEnv.js');
 const { run } = require('./server/proc.js');
 const { toolStatus, whichTool } = require('./server/toolStatus.js');
+const { runCocotb } = require('./server/cocotbRunner.js');
+const { runFormal } = require('./server/formalRunner.js');
 
 // ── modes ─────────────────────────────────────────────────────────────────────────
 //   packaged      : loads dist/index.html from the app bundle; data lives in the per-user data folder
@@ -33,6 +35,11 @@ if (SMOKE) {
 // yosys / iverilog / atalanta are found through PATH: bundled copy first, Homebrew prefixes as a fallback
 process.env.PATH = toolPath({ envPath: process.env.PATH, resourcesPath: process.resourcesPath, packaged: app.isPackaged });
 const BUNDLED_TOOLS = app.isPackaged ? path.join(process.resourcesPath, 'tools') : null;
+// The bundled Python (with cocotb and pyuvm on macOS/Linux) runs cocotb tests and SymbiYosys
+if (BUNDLED_TOOLS) {
+  const py = process.platform === 'win32' ? path.join(BUNDLED_TOOLS, 'lib', 'python3.exe') : path.join(BUNDLED_TOOLS, 'bin', 'tabbypy3');
+  if (fs.existsSync(py)) process.env.VBIDE_PYTHON = py;
+}
 if (BUNDLED_TOOLS && fs.existsSync(BUNDLED_TOOLS)) {
   try {
     const alias = ivlBaseAlias(BUNDLED_TOOLS);
@@ -149,6 +156,10 @@ ipcMain.handle('project:list-user-blocks', async () => {
 // ── Tools (shared runners: the same code the Docker server uses) ─────────────
 ipcMain.handle('yosys:synth', async (_, { projectName, verilog, pdkRoot, pdkId }) =>
   runSynthesis({ projDir: projectDir(DIRS.projects, projectName || 'tmp'), outDir: DIRS.synthesis, verilog, pdkId, pdkRoot: pdkRoot || '' }));
+ipcMain.handle('formal:run', async (_, { projectName, verilog, props, mode, depth }) =>
+  runFormal({ dir: path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'formal'), verilog, props, mode, depth }));
+ipcMain.handle('cocotb:run', async (_, { projectName, verilog, testPy }) =>
+  runCocotb({ dir: path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'cocotb'), verilog, testPy }));
 ipcMain.handle('sim:run', async (_, { projectName, verilog, testbench }) =>
   runSimulation({ simDir: path.join(projectDir(DIRS.projects, projectName || 'tmp'), 'sim'), verilog, testbench }));
 ipcMain.handle('atpg:run', async (_, { projectName, verilog }) =>
@@ -188,6 +199,10 @@ async function smokeTest(loaded) {
       const tb = 'module tb; reg a=0, b=0; wire y; top dut(.a(a),.b(b),.y(y)); initial begin $dumpfile("wave.vcd"); $dumpvars(0, tb); #1 a=1; #1 b=1; #1 $finish; end endmodule\\n';
       try { const s = await api.sim.run({ projectName: 'smoke-test', verilog: v, testbench: tb }); out.sim = { ok: s.ok, vcd: !!s.vcd, output: s.ok ? undefined : s.output }; } catch (e) { out.sim = { error: String(e) }; }
       try { const a = await api.atpg.run({ projectName: 'smoke-test', verilog: v }); out.atpg = { ok: a.ok, stage: a.stage, coverage: a.coverage, output: a.ok ? undefined : a.output }; } catch (e) { out.atpg = { error: String(e) }; }
+      const props = 'module props(input a, input b); wire y; top dut(.a(a),.b(b),.y(y)); always @(*) assert (y == (a & b)); endmodule\\n';
+      try { const f = await api.formal.run({ projectName: 'smoke-test', verilog: v, props, mode: 'prove' }); out.formal = { status: f.status, output: f.ok ? undefined : (f.output || '').slice(-600) }; } catch (e) { out.formal = { error: String(e) }; }
+      const py = 'import cocotb\\nfrom cocotb.triggers import Timer\\n@cocotb.test()\\nasync def t(dut):\\n    dut.a.value = 1\\n    dut.b.value = 1\\n    await Timer(1, "ns")\\n    assert int(dut.y.value) == 1\\n';
+      try { const c = await api.cocotb.run({ projectName: 'smoke-test', verilog: v, testPy: py }); out.cocotb = { ok: c.ok, summary: c.summary, output: c.ok ? undefined : (c.output || '').slice(-600) }; } catch (e) { out.cocotb = { error: String(e) }; }
       return out;
     })()`);
     // Which executable each tool name resolves to (spawn's PATH lookup)
@@ -202,6 +217,9 @@ async function smokeTest(loaded) {
       const atpgOk = page.atpg && (page.atpg.ok || (!tools.atalanta && page.atpg.stage === 'atalanta'));   // without atalanta, Yosys + converter must still succeed
       if (!atpgOk) problems.push('ATPG through IPC failed');
       if (tools.atalanta && !(tools.atalanta.startsWith(process.resourcesPath) && page.atpg.coverage > 0)) problems.push('bundled atalanta did not report coverage');
+      // Formal verification (SymbiYosys) on every system; cocotb on the bundled Python where the suite has it (not Windows)
+      if (!(page.formal && page.formal.status === 'PASS')) problems.push('formal check through IPC did not prove a true property: ' + JSON.stringify(page.formal));
+      if (process.platform !== 'win32' && !(page.cocotb && page.cocotb.ok)) problems.push('cocotb test through IPC did not pass: ' + JSON.stringify(page.cocotb));
       // Synthesis needs Yosys to start yosys-abc (the ATPG flow above does not use ABC)
       const v = path.join(DIRS.root, 'abc-check.v');
       fs.mkdirSync(DIRS.root, { recursive: true });
@@ -211,7 +229,7 @@ async function smokeTest(loaded) {
       if (!result.abc) problems.push('yosys could not run ABC: ' + (y.error ? String(y.error) : y.out.slice(-800)));
     }
     if (!(page.rootChildren > 0)) problems.push('page did not render (empty #root)');
-    for (const g of ['pdk', 'prefs', 'project', 'yosys', 'sim', 'atpg', 'tools', 'dialog']) if (!(page.apiGroups || []).includes(g)) problems.push('window.api.' + g + ' missing');
+    for (const g of ['pdk', 'prefs', 'project', 'yosys', 'sim', 'atpg', 'tools', 'cocotb', 'formal', 'dialog']) if (!(page.apiGroups || []).includes(g)) problems.push('window.api.' + g + ' missing');
     if (!(page.pdkRegistry > 0)) problems.push('pdk registry not readable: ' + page.pdkError);
     if (page.saveLoadRoundTrip !== true || page.listed !== true) problems.push('project save/load failed: ' + page.projectError);
     if (!page.badNameRejected) problems.push('path-traversal project name was accepted');

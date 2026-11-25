@@ -77,3 +77,19 @@ test('negative-edge flip-flop with synchronous reset ($_SDFF_NP0_) is unfolded c
   assert.doesNotMatch(r.bench, /BUFF\(clk\)/, 'clock must not be turned into data');
   assert.deepEqual(r.warnings, []);
 });
+
+test('the test vectors come back with the result, even when the folder path has dots in it', FULL, async () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'vbide.first.last-'));   // atalanta used to cut the pattern file name at the first dot
+  const r = await runAtpg({ projDir: path.join(base, 'p'), outDir: path.join(base, 'atpg.out'), verilog: 'module top(input a, b, c, output y); assign y = (a & b) | c; endmodule\n' });
+  assert.equal(r.ok, true, r.output);
+  assert.ok(fs.existsSync(path.join(base, 'atpg.out', 'top.test')), 'top.test');
+  assert.deepEqual(r.patterns.inputs, ['a', 'b', 'c']); assert.deepEqual(r.patterns.outputs, ['y']);
+  assert.ok(r.patterns.vectors.length > 0 && r.patterns.vectors.every(v => /^[01]{3}$/.test(v.inputs) && /^[01]$/.test(v.outputs)));
+  assert.match(r.testFile, /Test patterns/);
+});
+
+test('the .test parser reads names and patterns', () => {
+  const { parseTestFile } = require('../server/atpgRunner.js');
+  const p = parseTestFile('* Name of circuit:  fa.bench\n* Primary inputs :\n  a b cin \n  \n* Primary outputs:\n  sum cout \n\n* Test patterns and fault free responses:\n\n   1: 001 10\n   2: 110 01\n');
+  assert.deepEqual(p, { inputs: ['a', 'b', 'cin'], outputs: ['sum', 'cout'], vectors: [{ n: 1, inputs: '001', outputs: '10' }, { n: 2, inputs: '110', outputs: '01' }] });
+});

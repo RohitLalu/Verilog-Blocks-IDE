@@ -11,6 +11,7 @@
  */
 import React, { useState } from 'react';
 import useStore from '../store/graphStore.js';
+import ExplainButton from'./ExplainButton.jsx';
 
 export default function ATPGPanel() {
   const { nodes, generatedVerilog, projectName, atpgResult, setAtpgResult,
@@ -55,11 +56,12 @@ export default function ATPGPanel() {
     a.download = 'top.bench'; a.click();
   };
 
+  // the test patterns atalanta wrote (top.test), not its console log
   const downloadVectors = () => {
-    if (!atpgResult?.output) return;
+    if (!atpgResult?.testFile) return;
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([atpgResult.output], { type: 'text/plain' }));
-    a.download = 'atpg_vectors.txt'; a.click();
+    a.href = URL.createObjectURL(new Blob([atpgResult.testFile], { type: 'text/plain' }));
+    a.download = 'top.test'; a.click();
   };
 
   // ── Coverage colour ──────────────────────────────────────────────────────────
@@ -70,7 +72,7 @@ export default function ATPGPanel() {
     return '#f87171';
   };
 
-  const TABS = ['run', 'results', 'faults', 'log'];
+  const TABS = ['run', 'results', 'vectors', 'faults', 'log'];
 
   return (
     <div style={{ width: 440, background: '#0d1117', borderLeft: '1px solid #1e2733',
@@ -159,6 +161,8 @@ export default function ATPGPanel() {
                   <button onClick={() => setShowTools(true)} style={{ marginTop: 10, background: '#1c1508', border: '1px solid #92400e',
                     color: '#fbbf24', borderRadius: 6, fontSize: 11.5, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
                     How to install atalanta</button>}
+                {!/atalanta not found/.test(atpgResult.output || '') &&
+                  <ExplainButton style={{ marginTop: 10 }} prompt="My ATPG run failed. Explain the error and how to fix it." />}
               </div>
             )}
           </div>
@@ -169,6 +173,8 @@ export default function ATPGPanel() {
           !atpgResult?.ok
             ? <EmptyMsg>Run ATPG first to see results.</EmptyMsg>
             : <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <ExplainButton style={{ alignSelf: 'flex-start' }}
+                prompt="Explain my ATPG result: what this fault coverage means for my circuit, and why any faults were undetected or redundant." />
 
               {/* Coverage gauge */}
               <div style={{ background: '#111827', border: '1px solid #1e2733', borderRadius: 8, padding: 16 }}>
@@ -281,6 +287,15 @@ export default function ATPGPanel() {
             </div>
         )}
 
+        {/* ── Vectors tab: the test patterns, one row each, without downloading ── */}
+        {tab === 'vectors' && (
+          !atpgResult?.ok
+            ? <EmptyMsg>Run ATPG to see the test vectors.</EmptyMsg>
+            : !atpgResult.patterns?.vectors?.length
+              ? <EmptyMsg>atalanta produced no test vectors.</EmptyMsg>
+              : <VectorTable p={atpgResult.patterns} onDownload={downloadVectors} />
+        )}
+
         {/* ── Log tab ──────────────────────────────────────────────────────── */}
         {tab === 'log' && (
           !atpgResult
@@ -321,3 +336,38 @@ const EmptyMsg = ({ children }) => (
 const code = { color: '#f59e0b', fontFamily: "'JetBrains Mono',monospace", fontSize: 10 };
 const pill  = c => ({ background: `${c}18`, border: `1px solid ${c}44`, borderRadius: 5, color: c,
   fontSize: 11, fontWeight: 600, padding: '7px 14px', cursor: 'pointer', fontFamily: "'Space Grotesk',sans-serif" });
+
+// One row per test pattern: the value to apply to each input, and the output a fault-free circuit gives.
+// A faulty chip shows a different output for at least one of these patterns.
+function VectorTable({ p, onDownload }) {
+  const th = { color: '#475569', fontSize: 10, fontWeight: 600, padding: '4px 6px', textAlign: 'center', borderBottom: '1px solid #1e2733',
+    fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'nowrap' };
+  const td = { fontSize: 11, padding: '3px 6px', textAlign: 'center', fontFamily: "'JetBrains Mono',monospace", borderBottom: '1px solid #111827' };
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ color: '#64748b', fontSize: 11 }}>{p.vectors.length} test vectors · inputs to apply, and the expected outputs</span>
+        <button onClick={onDownload} style={{ background: 'transparent', border: '1px solid #92400e', borderRadius: 5, color: '#f59e0b',
+          fontSize: 10.5, padding: '3px 9px', cursor: 'pointer' }}>↓ top.test</button>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <thead><tr>
+            <th style={th}>#</th>
+            {p.inputs.map(n => <th key={'i' + n} style={{ ...th, color: '#60a5fa' }}>{n}</th>)}
+            <th style={{ ...th, borderLeft: '1px solid #1e2733' }}></th>
+            {p.outputs.map(n => <th key={'o' + n} style={{ ...th, color: '#4ade80' }}>{n}</th>)}
+          </tr></thead>
+          <tbody>{p.vectors.map(v => (
+            <tr key={v.n}>
+              <td style={{ ...td, color: '#334155' }}>{v.n}</td>
+              {[...v.inputs].map((b, i) => <td key={'i' + i} style={{ ...td, color: b === '1' ? '#e2e8f0' : '#475569' }}>{b}</td>)}
+              <td style={{ ...td, borderLeft: '1px solid #1e2733', color: '#334155' }}>→</td>
+              {[...v.outputs].map((b, i) => <td key={'o' + i} style={{ ...td, color: b === '1' ? '#86efac' : '#475569' }}>{b}</td>)}
+            </tr>))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

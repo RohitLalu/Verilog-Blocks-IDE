@@ -11,6 +11,7 @@
  */
 import React from 'react';
 import useStore from '../store/graphStore.js';
+import ExplainButton from'./ExplainButton.jsx';
 import VCDViewer from './VCDViewer.jsx';
 
 export default function SimulatorPanel() {
@@ -42,6 +43,8 @@ export default function SimulatorPanel() {
                 Last run output
               </div>
               <pre style={preStyle}>{simRunning ? '⟳ Running…' : simOutput}</pre>
+              {!simRunning && <ExplainButton style={{ marginTop:8 }}
+                prompt="My simulation did not produce a waveform. Explain the output above and how to fix my design or testbench." />}
             </div>
           )}
         </div>
@@ -60,6 +63,8 @@ export default function SimulatorPanel() {
             letterSpacing:1, textTransform:'uppercase', listStyle:'none', userSelect:'none' }}>
             ▸ Console output
           </summary>
+          <div style={{ padding:'0 14px 6px' }}><ExplainButton
+            prompt="Explain what my simulation shows: how each output responds to the inputs, and whether my circuit does what it should." /></div>
           <pre style={{ ...preStyle, maxHeight:120, margin:0, borderRadius:0, border:'none',
             borderTop:'1px solid #1e2733' }}>
             {simOutput}

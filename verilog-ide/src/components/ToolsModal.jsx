@@ -52,6 +52,8 @@ export default function ToolsModal(){
               </tr>))}
           </tbody></table>}
 
+          {tools?.find(t=>t.name==='cocotb'&&!t.found)&&<p style={{...S.muted,marginTop:12}}>cocotb and pyuvm (Python testbenches) come with the app
+            on macOS and Linux. Here, install Python 3, then run <code style={{color:'#facc15'}}>python -m pip install cocotb pyuvm</code> and restart the app.</p>}
           {atalanta&&!atalanta.found&&<div style={S.callout}>
             <div style={{color:'#fbbf24',fontWeight:700,fontSize:13,marginBottom:6}}>Fault coverage (ATPG) needs atalanta</div>
             <p style={S.p}>atalanta is not included with the app. Its licence allows <b>teaching and research use only</b>; commercial use needs

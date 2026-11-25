@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VerilogBlocks IDE documentation</title>
+<meta name="description" content="How to use VerilogBlocks IDE: drawing circuits from standard cells, Verilog, simulation, synthesis, timing, fault coverage, hierarchy and the learning assistant.">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='none' stroke='%233b82f6' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="../"><span aria-hidden="true">⬡</span> VBiDE</a>
+    <ul>
+      <li class="opt"><a href="../#how">How it works</a></li>
+      <li><a href="./" aria-current="page">Docs</a></li>
+      <li><a href="../download/">Download</a></li>
+      <li class="opt"><a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="eyebrow">Documentation</div>
+    <h1>Using VerilogBlocks IDE</h1>
+    <p class="lede" style="text-align:left;margin:0">From an empty canvas to a simulated, synthesised and analysed circuit. Every picture here is a screenshot
+      of the app working on the same 1-bit full adder.</p>
+  </div>
+</header>
+
+<div class="wrap docs">
+  <aside class="toc" aria-label="On this page">
+    <a href="#start">Getting started</a>
+    <a href="#canvas">Drawing a circuit</a>
+    <a href="#names">Naming signals</a>
+    <a href="#verilog">The Verilog</a>
+    <a href="#sim">Simulation</a>
+    <a href="#waves">The waveform viewer</a>
+    <a href="#cocotb">cocotb tests (Python)</a>
+    <a href="#synth">Synthesis (Yosys)</a>
+    <a href="#formal">Formal verification</a>
+    <a href="#sta">Timing (STA)</a>
+    <a href="#atpg">Fault coverage (ATPG)</a>
+    <a href="#hier">Reusing designs</a>
+    <a href="#assistant">The learning assistant</a>
+    <a href="#layout">Panels and tabs</a>
+    <a href="#tools">The Tools window</a>
+    <a href="#keys">Keyboard shortcuts</a>
+    <a href="#data">Where your work is saved</a>
+    <a href="#trouble">Troubleshooting</a>
+    <a href="#licences">Licences</a>
+  </aside>
+
+  <main class="doc">
+    <h2 id="start">Getting started</h2>
+    <ol>
+      <li><a href="../download/">Download</a> the app for your system and open it (the download page has first-launch help for each system).</li>
+      <li>In <b>New Project</b>, give the project a name and pick a process (PDK): <b>SkyWater SKY130</b> or <b>GlobalFoundries GF180MCU</b>.
+        The PDK is fixed once cells are on the canvas; clear the canvas to change it.</li>
+      <li>The cell list on the left now holds that process's standard cells. Drag one onto the canvas to begin.</li>
+    </ol>
+    <div class="shot"><img src="../assets/shots/new-project.jpg" width="1600" height="883" loading="lazy" alt="The New Project dialog with a project name and a list of PDKs."></div>
+    <p>For synthesis onto real cells you also need the PDK itself on your computer (see <a href="#synth">Synthesis</a>); everything else works without it.</p>
+
+    <h2 id="canvas">Drawing a circuit</h2>
+    <ul>
+      <li><b>Add a cell:</b> drag it from the cell list. <b>?</b> on a cell explains what it does, with a Verilog snippet.</li>
+      <li><b>Wire:</b> drag from an output pin (right side of a cell) to an input pin (left side). A wire is named after the pin that
+        drives it, and one output can drive many inputs.</li>
+      <li>The app refuses wires between pins of different widths, a second wire into an input that already has a driver, and any wire
+        that would make a <b>combinational loop</b> (a gate's output feeding back to its own input through logic only). Feedback through a
+        flip-flop or latch is fine.</li>
+      <li><b>Delete a wire:</b> click it (or its name) to select it, then click the <b>×</b> on it, press <kbd>Delete</kbd>/<kbd>Backspace</kbd>,
+        or simply double-click the wire.</li>
+      <li><b>Move</b> cells by dragging; <b>delete</b> a selected cell or wire with <kbd>Delete</kbd> or <kbd>Backspace</kbd> (the Mac's delete key), or the × on the cell.
+        Undo, redo, copy and paste work as usual (see <a href="#keys">shortcuts</a>).</li>
+      <li><b>↓ Save</b> stores the project; <b>📂 Open Project</b> (bottom left) opens a saved one.</li>
+    </ul>
+    <div class="shot"><img src="../assets/shots/canvas.jpg" width="1600" height="883" loading="lazy" alt="A full adder on the canvas built from XOR, AND and OR cells."></div>
+
+    <h2 id="names">Naming signals</h2>
+    <p>Pins that are not wired become the ports of your module. By default a port is named <code>&lt;cell&gt;_&lt;pin&gt;</code>,
+      for example <code>sky130_xor2_1_A</code>. To give it a real name:</p>
+    <ol>
+      <li><b>Double-click</b> the pin's label on the cell.</li>
+      <li>Type a name such as <code>a</code>, <code>cin</code> or <code>sum</code> and press <kbd>Enter</kbd>
+        (<kbd>Esc</kbd> cancels; an empty name goes back to the default).</li>
+    </ol>
+    <ul>
+      <li>Naming an <b>output</b> also names the wire it drives.</li>
+      <li>Two unconnected <b>inputs</b> may share a name on purpose: they become one shared input port.</li>
+      <li>Names must be valid Verilog: letters, digits and <code>_</code>, starting with a letter or <code>_</code>, and not a Verilog keyword.</li>
+    </ul>
+
+    <h2 id="verilog">The Verilog</h2>
+    <p><b>&lt;/&gt;</b> in the toolbar shows the structural Verilog of your design, updated as you draw. Each cell becomes one
+      statement; unconnected pins are the module's ports. Copy it, or download <code>top.v</code>.</p>
+    <div class="shot"><img src="../assets/shots/verilog.jpg" width="1600" height="883" loading="lazy" alt="The Verilog panel beside the canvas."></div>
+
+    <h2 id="sim">Simulation</h2>
+    <ol>
+      <li>Click <b>⚡ Sim</b>. The testbench panel lists every input of your design.</li>
+      <li>Pick a stimulus for each input: <b>constant</b> (a fixed value), <b>clock</b> (a period), <b>sequence</b> (a list of
+        values, one per period) or <b>random</b> (a number of random values, one per period). All inputs run at the same time.</li>
+      <li>Click <b>▶ iverilog</b>. The app writes the testbench, compiles and runs it with Icarus Verilog, and opens the waveform.</li>
+    </ol>
+    <p>The <b>Preview</b> tab shows the generated testbench; <b>Custom TB</b> lets you write your own.</p>
+
+    <h3 id="waves">The waveform viewer</h3>
+    <p>The viewer opens showing the whole run. Each row is one signal; buses show their value.</p>
+    <ul>
+      <li><b>Zoom:</b> <kbd>+</kbd> / <kbd>−</kbd> buttons, the keys <kbd>+</kbd> <kbd>-</kbd>, or <kbd>Ctrl</kbd>+scroll.
+        <b>fit</b> or <kbd>F</kbd> shows the whole run again. <b>Pan</b> by dragging or scrolling.</li>
+      <li><b>Click</b> in the waves to place a cursor; the value column shows every signal at that time.</li>
+      <li><b>☰ signals</b> adds or removes signals. Click a signal's name to select it: then you can move it, change its colour,
+        or show a bus in hex, binary or decimal.</li>
+      <li><b>↓ wave.vcd</b> saves the waveform; <b>↑ Load VCD</b> opens one from elsewhere.</li>
+    </ul>
+    <div class="shot"><img src="../assets/shots/waveform.jpg" width="1600" height="883" loading="lazy" alt="The waveform viewer showing the full adder's signals over the whole run."></div>
+
+    <h3 id="cocotb">cocotb tests (Python)</h3>
+    <p>The testbench panel's <b>cocotb</b> tab writes a <a href="https://docs.cocotb.org">cocotb</a> test for your design: Python that drives
+      every input and logs the outputs, with a place for your <code>assert</code> checks. Pick a template:</p>
+    <ul>
+      <li><b>Simple test:</b> random values on every input, the outputs logged.</li>
+      <li><b>UVM (pyuvm):</b> the structure of a UVM testbench in Python (<a href="https://pyuvm.github.io/pyuvm">pyuvm</a>): a sequence item,
+        a sequence, a sequencer, a driver, a scoreboard (put your reference model there), an environment and a test.</li>
+    </ul>
+    <p>Edit it, then press <b>▶ Run cocotb</b>: it runs with the app's Icarus Verilog and shows how many tests passed, with the log. On macOS and
+      Linux, Python, cocotb and pyuvm come with the app. On Windows install Python, then <code>python -m pip install cocotb pyuvm</code>
+      (not yet verified with the bundled simulator). A cocotb test is a Python program and runs with your user's rights, so only run tests you trust.</p>
+
+    <h2 id="synth">Synthesis (Yosys)</h2>
+    <p><b>⚛ Yosys</b> maps your design onto the PDK's real standard cells and reports which cells it used and the chip area.
+      It needs the PDK's Liberty file (for SKY130, <code>sky130_fd_sc_hd__tt_025C_1v80.lib</code>), so the first time it asks for
+      your PDK folder: point it at the PDK root (for example a <code>sky130A</code> folder installed with
+      <a href="https://github.com/fossi-foundation/ciel">ciel</a> or volare) and click <b>Validate</b>.</p>
+    <p>Without a Liberty file the app refuses to synthesise rather than report results for the wrong cells.</p>
+
+    <h2 id="formal">Formal verification</h2>
+    <p>Simulation checks the inputs you choose; a formal check covers <b>all</b> of them. <b>⊨ Formal</b> opens a properties module that wraps your
+      design: every input is free, so the checker considers every value. Write what must always hold:</p>
+<pre><code>always @(*) begin
+    assume (!(a &amp;&amp; b));            // only consider inputs where this holds
+    assert (sum == (a ^ b ^ cin));   // must hold for every such input
+end</code></pre>
+    <p>Choose <b>Prove</b> (for all cases) or <b>Bounded check</b> (the first N steps, for designs with flip-flops), then <b>▶ Run</b>.
+      SymbiYosys answers <b>PASS</b> (proved), <b>FAIL</b> (with a counterexample: <b>〰 Open the counterexample</b> shows it in the waveform
+      viewer) or <b>UNKNOWN</b> (the proof didn't close; try a bounded check or add assumptions). For flip-flops, check properties on a clock
+      edge: <code>always @(posedge clk) assert (...);</code></p>
+
+    <h2 id="sta">Timing (STA)</h2>
+    <p><b>◈ STA</b> runs static timing analysis with each cell's typical delay. Set the clock period (and input/output delays)
+      and click <b>Run STA</b>. You get the critical path, the worst slack, the maximum clock frequency and any setup violations;
+      the cells on the canvas are coloured by their slack.</p>
+    <div class="shot"><img src="../assets/shots/sta.jpg" width="1600" height="883" loading="lazy" alt="The timing panel with a three-stage critical path and the slack shown on each cell."></div>
+
+    <h2 id="atpg">Fault coverage (ATPG)</h2>
+    <p><b>◈ ATPG</b> asks: if any wire in the circuit were stuck at 0 or at 1, is there an input pattern that would reveal it? Yosys
+      turns the design into simple gates, and atalanta generates the test patterns and reports the fault coverage, the number of
+      test vectors, and any redundant (impossible to detect) faults. The <b>Vectors</b> tab lists every test pattern: the value to apply to
+      each input and the output a fault-free chip gives (<b>↓ top.test</b> saves them). The <b>Log</b> tab shows atalanta's full output.</p>
+    <div class="note"><p><b>atalanta is not included with the app.</b> Its licence allows teaching and research use only, so you build it
+      yourself in a few minutes: follow the <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/blob/main/docs/ATALANTA.md">atalanta guide</a>
+      (macOS, Windows, Linux). The app's <b>⚙ Tools</b> window shows the commands for your system too.</p></div>
+    <div class="shot"><img src="../assets/shots/atpg.jpg" width="1600" height="883" loading="lazy" alt="ATPG results: 100% fault coverage with 7 test vectors."></div>
+
+    <h2 id="hier">Reusing designs</h2>
+    <ol>
+      <li>Build a small design, for example a half adder, and <a href="#names">name its ports</a> (<code>a</code>, <code>b</code>,
+        <code>sum</code>, <code>carry</code>).</li>
+      <li>Click <b>⬡ Export as Hierarchy</b> (bottom left), give it a label and colour, and export.</li>
+      <li>It appears in the cell list under <b>My Designs</b>. Drag it into another design like any cell: two half adders and an OR gate
+        make a full adder.</li>
+    </ol>
+    <p>The generated Verilog defines each saved design once, as its own module, and simulation, synthesis and ATPG all work on the
+      whole design. <b>✦ New Custom Block</b> lets you write a block in Verilog yourself.</p>
+
+    <h2 id="assistant">The learning assistant</h2>
+    <p>VerilogBlocks IDE has its own tutor, <b>vbide-tutor</b>. It explains digital design using your circuit and your results, and it
+      runs on your own computer: nothing you type leaves the machine.</p>
+    <h3>Set it up</h3>
+    <ol>
+      <li>Install <a href="https://ollama.com/download">Ollama</a> (free; macOS, Windows, Linux) and start it. It runs in the background.</li>
+      <li>In the app, click <b>✦ Ask</b>, then <b>Set up the tutor</b>. The app downloads the base model, Qwen2.5-Coder 1.5B
+        (Apache-2.0, about 1 GB), once, and builds vbide-tutor from it with instructions about this app. That's it.</li>
+    </ol>
+    <h3>Use it</h3>
+    <ul>
+      <li>Ask in your own words: "Why is this my critical path?", "What is a stuck-at fault?", "How do I add a carry input?".</li>
+      <li>Press <b>✦ Explain</b> next to a result: on the simulation output, Yosys results, timing results, ATPG results and failures.
+        On a cell's <b>?</b> help, <b>✦ Ask about this cell</b>.</li>
+      <li>With <b>Use my design and results</b> ticked, each question goes with your cells, your Verilog and the latest simulation,
+        timing, ATPG and Yosys results. Untick it for general questions.</li>
+      <li>The chat floats over the canvas and stays open beside any panel. Closing it keeps the conversation; <b>Clear</b> starts over.</li>
+      <li>It knows how far along the recommended flow you are (design, simulation, timing check, synthesis, test vectors, formal
+        verification) and can suggest the next step; once you reach testing it introduces design-for-test and structured verification
+        (assertions, coverage, UVM, cocotb). Ask it to compare two designs and it weighs correctness, size, timing, testability and how
+        cleanly they synthesise.</li>
+    </ul>
+    <div class="shot"><img src="../assets/shots/assistant.jpg" width="1600" height="883" loading="lazy" alt="The assistant open beside the timing panel with suggested questions."></div>
+    <p>A small model can be wrong; check important answers. To remove it later: <code>ollama rm vbide-tutor:2.1 qwen2.5-coder:1.5b</code>.
+      To see exactly how the tutor is built: <code>ollama show vbide-tutor:2.1 --modelfile</code>.</p>
+
+    <h2 id="layout">Panels and tabs</h2>
+    <p>Every tool you open (Verilog, Yosys, STA, Testbench, Waveform, ATPG) becomes a <b>tab</b> in the right-hand frame, like Vivado's windows:
+      click a tab to bring it to the front, <b>×</b> to close it. Drag the frame's left edge to make it wider or narrower; double-click the edge
+      to go back to the panel's own width. The width is remembered.</p>
+
+    <h2 id="tools">The Tools window</h2>
+    <p><b>⚙ Tools</b> (bottom left) lists the programs the app runs (yosys, iverilog, vvp, atalanta, SymbiYosys, and Python with cocotb and pyuvm) and says for each whether it is
+      <b>included with the app</b>, <b>installed on this computer</b>, or <b>missing</b>, with its version and location. When atalanta
+      is missing it shows how to build it for your system.</p>
+
+    <h2 id="keys">Keyboard shortcuts</h2>
+    <div class="table-scroll"><table class="t">
+      <tr><th>Keys</th><th>Action</th></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Z</kbd></td><td>Undo</td></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Y</kbd>, or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></td><td>Redo</td></tr>
+      <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>C</kbd> / <kbd>V</kbd></td><td>Copy / paste the selected cells and the wires between them</td></tr>
+      <tr><td><kbd>Delete</kbd> or <kbd>Backspace</kbd></td><td>Delete the selected cells or wires</td></tr>
+      <tr><td>Double-click a pin label</td><td>Name that signal (<kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels)</td></tr>
+      <tr><td><kbd>+</kbd> <kbd>-</kbd> <kbd>F</kbd> <kbd>←</kbd> <kbd>→</kbd></td><td>Waveform: zoom in, zoom out, fit the whole run, scroll</td></tr>
+      <tr><td><kbd>Enter</kbd> / <kbd>Shift</kbd> <kbd>Enter</kbd></td><td>Assistant: send the question / new line</td></tr>
+    </table></div>
+
+    <h2 id="data">Where your work is saved</h2>
+    <div class="table-scroll"><table class="t">
+      <tr><th>System</th><th>Folder</th></tr>
+      <tr><td>macOS</td><td><code>~/Library/Application Support/VerilogBlocks IDE</code></td></tr>
+      <tr><td>Windows</td><td><code>%APPDATA%\VerilogBlocks IDE</code></td></tr>
+      <tr><td>Linux</td><td><code>~/.config/VerilogBlocks IDE</code></td></tr>
+    </table></div>
+    <p>Projects are ordinary folders (<code>graph.json</code>, <code>top.v</code>, the testbench); outputs of synthesis and ATPG sit next
+      to them. Updating the app leaves them in place.</p>
+
+    <h2 id="trouble">Troubleshooting</h2>
+    <h3>macOS says the app is "damaged"</h3>
+    <p>The app isn't signed by Apple yet. Run <code>xattr -dr com.apple.quarantine "/Applications/VerilogBlocks IDE.app"</code> once, then open it.</p>
+    <h3>Windows shows "Windows protected your PC"</h3>
+    <p>The installer isn't code-signed yet. Click <b>More info</b>, then <b>Run anyway</b>.</p>
+    <h3>The Linux AppImage doesn't start</h3>
+    <p>Make it executable (<code>chmod +x</code>). On Ubuntu 22.04 and newer, AppImages also need FUSE 2: <code>sudo apt install libfuse2</code>
+      (on 24.04: <code>libfuse2t64</code>), or start it with <code>--appimage-extract-and-run</code>.</p>
+    <h3>ATPG says "atalanta not found"</h3>
+    <p>Build it with the <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/blob/main/docs/ATALANTA.md">atalanta guide</a>, restart the app,
+      and check <b>⚙ Tools</b>. On macOS and Linux the app also looks in <code>~/.local/bin</code>, where the guide installs it.</p>
+    <h3>Synthesis refuses to run</h3>
+    <p>It needs your PDK's Liberty file: open the PDK selector (the PDK chip in the toolbar), enter your PDK root folder and click <b>Validate</b>.</p>
+    <h3>The assistant says it can't find Ollama</h3>
+    <p>Make sure Ollama is installed and running (its icon shows in the menu bar or system tray, or run <code>ollama serve</code>), then click
+      <b>Check again</b>.</p>
+    <h3>Something else</h3>
+    <p>Open an <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/issues">issue on GitHub</a> with what you did, what you expected and
+      what happened; a screenshot and the <b>⚙ Tools</b> window's contents help.</p>
+
+    <h2 id="licences">Licences</h2>
+    <p>VerilogBlocks IDE is MIT-licensed. It includes unmodified Yosys (ISC) and Icarus Verilog (GPL-2.0) from OSS CAD Suite, run as separate
+      programs; their licence texts come with the app. atalanta is not included (teaching and research use only; see its guide).
+      The assistant's base model, Qwen2.5-Coder 1.5B, is Apache-2.0; Ollama is MIT.</p>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p><b style="color:var(--text)">VerilogBlocks IDE</b> · MIT licence · © 2026 Rohit L</p>
+      <p>Found a mistake in these docs? <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE/issues">Tell us</a>.</p>
+    </div>
+    <div><a href="../download/">Downloads</a> · <a href="https://github.com/RohitLalu/Verilog-Blocks-IDE">Source on GitHub</a></div>
+  </div>
+</footer>
+</body>
+</html>
