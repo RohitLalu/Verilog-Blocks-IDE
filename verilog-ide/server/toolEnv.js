@@ -10,9 +10,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// ~/.local/bin: where docs/ATALANTA.md suggests installing atalanta without admin rights
 const EXTRA = {
-  darwin: ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin'],   // Apple silicon, Intel/legacy, MacPorts
-  linux: ['/usr/local/bin'],
+  darwin: ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/opt/local/bin', path.join(os.homedir(), '.local', 'bin')],   // Apple silicon, Intel/legacy, MacPorts, user
+  linux: ['/usr/local/bin', path.join(os.homedir(), '.local', 'bin')],
 };
 
 function toolPath({ platform = process.platform, envPath = '', resourcesPath, packaged = false } = {}) {

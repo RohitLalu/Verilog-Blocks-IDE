@@ -3,6 +3,7 @@ const express  = require('express');
 const path     = require('path');
 const fs       = require('fs');
 const { spawnSync } = require('child_process');
+const { toolStatus } = require('./toolStatus.js');
 const { runSimulation } = require('./simRunner.js');
 const { runSynthesis } = require('./synthRunner.js');
 const { runAtpg } = require('./atpgRunner.js');
@@ -191,6 +192,9 @@ app.get('/api/atpg/download/bench', (req, res) => {
   if (!exists(f)) return res.status(404).json({ error: 'Run ATPG first.' });
   res.download(f, 'top.bench');
 });
+
+// ── Tools: what the Tools window shows ───────────────────────────────────────
+app.get('/api/tools/status', (req, res) => res.json(toolStatus()));
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

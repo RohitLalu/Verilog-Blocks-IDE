@@ -17,8 +17,10 @@ reports static timing and stuck-at fault coverage (ATPG). Yosys and Icarus Veril
 | Windows 10/11 | `VerilogBlocks-IDE-Setup-x64.exe` (or the portable `-win-x64.zip`) | SmartScreen may say "Windows protected your PC": click **More info**, then **Run anyway**. |
 | Linux x86-64 | `VerilogBlocks-IDE-linux-x86_64.AppImage` | `chmod +x VerilogBlocks-IDE-linux-x86_64.AppImage`, then run it. |
 
-Fault coverage (ATPG) also needs [atalanta](https://github.com/hsluoyz/Atalanta) on your `PATH`. It is not bundled
-because its licence allows teaching and research use only. Synthesis onto real cells needs the PDK's Liberty file:
+Fault coverage (ATPG) also needs [atalanta](https://github.com/hsluoyz/Atalanta). It is not bundled because its licence
+allows teaching and research use only, but you can build it yourself in a few minutes:
+**[docs/ATALANTA.md](docs/ATALANTA.md)** (macOS, Windows, Linux; licence terms included). The app's **⚙ Tools** window
+(bottom of the cell list) shows which tools it found, their versions and locations, and the build steps for your system. Synthesis onto real cells needs the PDK's Liberty file:
 point the app at your SKY130 or GF180 PDK folder when it asks.
 
 ## What you can do
@@ -52,6 +54,9 @@ Everything runs on your computer. Projects are ordinary files in your user folde
 
 **Next**
 
+* **⚙ Tools** window: which tools the app uses (bundled or installed), their versions and locations; atalanta build
+  guide ([docs/ATALANTA.md](docs/ATALANTA.md)) linked from it and from the ATPG panel.
+
 * Promo video: soft background music, a Yosys synthesis run, and a bigger module built from smaller custom modules.
 
 **Later**
@@ -69,6 +74,7 @@ Everything runs on your computer. Projects are ordinary files in your user folde
 ├── LICENSE
 ├── netlify.toml            # website deploy: publishes website/site, no build step
 ├── .github/workflows/      # desktop.yml: build + test + package on macOS, Linux, Windows; releases on v* tags
+├── docs/ATALANTA.md         # how users build atalanta for ATPG (licence terms included)
 ├── website/
 │   ├── site/               # the static website (index.html, screenshots, promo video)
 │   ├── capture/            # capture.js: screenshots of the real app
@@ -215,8 +221,8 @@ The archive is cached in `.cache/tools/`, and neither folder is committed.
 
 * `--with-atalanta` (or `VBIDE_BUNDLE_ATALANTA=1`) also compiles atalanta from the pinned commit. **Off by default**:
   atalanta's README allows teaching and research use only, and no commercial product without permission from its
-  author, so shipping it in public installers needs that decision first. Without it, ATPG in the desktop app needs
-  `atalanta` on your `PATH`.
+  author, so shipping it in public installers needs that decision first. Users build it themselves instead, following
+  [docs/ATALANTA.md](docs/ATALANTA.md); the app also looks in `~/.local/bin` (macOS, Linux), where that guide puts it.
 * `THIRD_PARTY_NOTICES.txt` (generated next to the tools) has the licences and source pointers.
   Yosys is ISC. Icarus Verilog is GPL-2.0, run as a separate program. Have the redistribution terms reviewed before
   publishing installers.

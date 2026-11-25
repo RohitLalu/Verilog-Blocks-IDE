@@ -11,13 +11,14 @@ import AssistantPanel from'./components/AssistantPanel.jsx';
 import TutorialPanel from'./components/TutorialPanel.jsx';
 import{CustomBlockBuilder,HierarchyExporter,PDKSelector}from'./components/Modals.jsx';
 import ProjectBrowser from'./components/ProjectBrowser.jsx';
+import ToolsModal from'./components/ToolsModal.jsx';
 import useStore from'./store/graphStore.js';
 import{loadPDK}from'./pdk/pdkLoader.js';
 import'./App.css';
 
 export default function App(){
   const{activePanel,showTutorial,showCustomBlockBuilder,showHierarchyExporter,
-    showProjectBrowser,selectedPDK,setCellsManifest,setPDKContext,userBlocks}=useStore();
+    showProjectBrowser,showTools,selectedPDK,setCellsManifest,setPDKContext,userBlocks}=useStore();
 
   const[showPDKSelector,setShowPDKSelector]=useState(false);
 
@@ -69,6 +70,7 @@ export default function App(){
       {showCustomBlockBuilder&&<CustomBlockBuilder/>}
       {showHierarchyExporter&&<HierarchyExporter/>}
       {showProjectBrowser&&<ProjectBrowser/>}
+      {showTools&&<ToolsModal/>}
       <Notifications/>
     </div>
   );

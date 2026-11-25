@@ -10,6 +10,7 @@ const { safeId, safeName, projectDir, resolveInside, insideAnyRoot, sanitizePref
 const { dataDirs, assertWritableLocations } = require('./server/appPaths.js');
 const { toolPath, ivlBaseAlias, removeAlias } = require('./server/toolEnv.js');
 const { run } = require('./server/proc.js');
+const { toolStatus, whichTool } = require('./server/toolStatus.js');
 
 // ── modes ─────────────────────────────────────────────────────────────────────────
 //   packaged      : loads dist/index.html from the app bundle; data lives in the per-user data folder
@@ -153,6 +154,8 @@ ipcMain.handle('sim:run', async (_, { projectName, verilog, testbench }) =>
 ipcMain.handle('atpg:run', async (_, { projectName, verilog }) =>
   runAtpg({ projDir: projectDir(DIRS.projects, projectName || 'tmp_atpg'), outDir: DIRS.atpg, verilog }));
 
+ipcMain.handle('tools:status', async () => toolStatus({ bundledDir: app.isPackaged ? path.join(process.resourcesPath, 'tools') : null }));
+
 // ── Dialog ───────────────────────────────────────────────────────────────────
 ipcMain.handle('dialog:open-folder', async () => {
   const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'] });
@@ -187,10 +190,8 @@ async function smokeTest(loaded) {
       try { const a = await api.atpg.run({ projectName: 'smoke-test', verilog: v }); out.atpg = { ok: a.ok, stage: a.stage, coverage: a.coverage, output: a.ok ? undefined : a.output }; } catch (e) { out.atpg = { error: String(e) }; }
       return out;
     })()`);
-    // Which executable each tool name resolves to (spawn's PATH lookup; Windows adds .exe)
-    const where = t => process.env.PATH.split(path.delimiter).filter(Boolean)
-      .map(d => path.join(d, t + (process.platform === 'win32' ? '.exe' : ''))).find(exists) || null;
-    const tools = Object.fromEntries(['yosys', 'iverilog', 'vvp', 'atalanta'].map(t => [t, where(t)]));
+    // Which executable each tool name resolves to (spawn's PATH lookup)
+    const tools = Object.fromEntries(['yosys', 'iverilog', 'vvp', 'atalanta'].map(t => [t, whichTool(t)]));
     const bundled = app.isPackaged && exists(path.join(process.resourcesPath, 'tools', 'bin'));
     Object.assign(result, page, { bundledTools: bundled, tools });
     const problems = [];
@@ -210,7 +211,7 @@ async function smokeTest(loaded) {
       if (!result.abc) problems.push('yosys could not run ABC: ' + (y.error ? String(y.error) : y.out.slice(-800)));
     }
     if (!(page.rootChildren > 0)) problems.push('page did not render (empty #root)');
-    for (const g of ['pdk', 'prefs', 'project', 'yosys', 'sim', 'atpg', 'dialog']) if (!(page.apiGroups || []).includes(g)) problems.push('window.api.' + g + ' missing');
+    for (const g of ['pdk', 'prefs', 'project', 'yosys', 'sim', 'atpg', 'tools', 'dialog']) if (!(page.apiGroups || []).includes(g)) problems.push('window.api.' + g + ' missing');
     if (!(page.pdkRegistry > 0)) problems.push('pdk registry not readable: ' + page.pdkError);
     if (page.saveLoadRoundTrip !== true || page.listed !== true) problems.push('project save/load failed: ' + page.projectError);
     if (!page.badNameRejected) problems.push('path-traversal project name was accepted');
