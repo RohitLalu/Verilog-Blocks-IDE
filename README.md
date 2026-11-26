@@ -6,7 +6,7 @@ reports static timing and stuck-at fault coverage (ATPG), checks properties form
 pyuvm (UVM in Python) testbenches. Yosys, Icarus Verilog, SymbiYosys, and Python with cocotb and pyuvm come with the app
 (on Windows, cocotb and pyuvm are not included; see *Bundled tools*).
 
-* **Website:** https://vbide.netlify.app (a one-minute video, screenshots, downloads)
+* **Website:** https://rohitlalu.github.io/Verilog-Blocks-IDE/ (a one-minute video, screenshots, downloads)
 * **Download:** the [latest release](https://github.com/RohitLalu/Verilog-Blocks-IDE/releases/latest) for macOS
   (Apple silicon), Windows 10/11 (64-bit) and Linux (x86-64 AppImage)
 * **Licence:** MIT
